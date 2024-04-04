@@ -40,8 +40,6 @@ class GraphLearner:
         self.state_set = set()
 
     def add_state(self, state):
-        # Filter only the values that are True
-        state = {key: value for key, value in state.items() if value}
         state_frozenset = frozenset(state.items())
         if state_frozenset not in self.state_set:
             state_name = str(len(self.state_mapping))
@@ -55,6 +53,8 @@ class GraphLearner:
         #print("Learning the transition: ", state, action, next_state)
         state = self.add_state(state)
         next_state = self.add_state(next_state)
+        if state is None or next_state is None:
+            return
         #print(state, action, next_state)
         self.graph.add_edge(state, next_state, label=action)
         print(f"Edge attributes: {nx.get_edge_attributes(self.graph, 'label')}")  # Add this line

@@ -65,6 +65,8 @@ class RecordDemos(gym.Wrapper):
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.env.render() if self.render_init else None
             self.state_memory = self.record_demos(obs, [0,0,1,0], next_obs, self.state_memory, next_state)
+            if self.state_memory is None:
+                return False, obs
             obs, state = next_obs, next_state
 
         #print("Opening gripper...")
@@ -73,6 +75,8 @@ class RecordDemos(gym.Wrapper):
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.state_memory = self.record_demos(obs, [0,0,0,-0.1], next_obs, self.state_memory, next_state)
+            if self.state_memory is None:
+                return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
             if self.reset_step_count > 100:
@@ -90,6 +94,8 @@ class RecordDemos(gym.Wrapper):
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state)
+            if self.state_memory is None:
+                return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
             if self.reset_step_count > 500:
@@ -107,6 +113,8 @@ class RecordDemos(gym.Wrapper):
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state)
+            if self.state_memory is None:
+                return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
             if self.reset_step_count > 400:
@@ -120,6 +128,8 @@ class RecordDemos(gym.Wrapper):
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.state_memory = self.record_demos(obs, [0,0,0,0.1], next_obs, self.state_memory, next_state)
+            if self.state_memory is None:
+                return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
             if self.reset_step_count > 30:
@@ -133,6 +143,8 @@ class RecordDemos(gym.Wrapper):
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.state_memory = self.record_demos(obs, [0,0,0.2,0], next_obs, self.state_memory, next_state)
+            if self.state_memory is None:
+                return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
             if self.reset_step_count > 300:
@@ -170,6 +182,8 @@ class RecordDemos(gym.Wrapper):
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state)
+            if self.state_memory is None:
+                return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
             if self.reset_step_count > 500:
@@ -188,6 +202,8 @@ class RecordDemos(gym.Wrapper):
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state)
+            if self.state_memory is None:
+                return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
             if self.reset_step_count > 200:
@@ -201,6 +217,8 @@ class RecordDemos(gym.Wrapper):
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.state_memory = self.record_demos(obs, [0,0,0,-0.1], next_obs, self.state_memory, next_state, done=(not next_state['grasped({})'.format(self.obj_to_pick)]), reward=1000 if next_state['on({},{})'.format(self.obj_to_pick, self.place_to_drop)] else -1)
+            if self.state_memory is None:
+                return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
             if self.reset_step_count > 30:
@@ -214,6 +232,8 @@ class RecordDemos(gym.Wrapper):
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.env.render() if self.render_init else None
             self.state_memory = self.record_demos(obs, [0,0,0.5,0], next_obs, self.state_memory, next_state)
+            if self.state_memory is None:
+                return False, obs
             obs, state = next_obs, next_state
 
         return True, obs
@@ -264,6 +284,11 @@ class RecordDemos(gym.Wrapper):
                     state_memory = copy.deepcopy(new_state)
                     state = {k: state[k] for k in state if 'on' in k}
                     new_state = {k: new_state[k] for k in new_state if 'on' in k}
+                    # Filter only the values that are True
+                    state = {key: value for key, value in state.items() if value}
+                    # if state has not 3 keys, return None
+                    if len(state) != 3:
+                        return None
                     self.Graph.learn(state, "MOVE", new_state)
                     self.symbolic_buffer.append((state, "MOVE", new_state))
                     state = new_state
@@ -382,14 +407,15 @@ if __name__ == "__main__":
     done = False
     for episode in range(args.episodes):
         print("Episode: {}".format(episode))
+        print("Number of recorded episodes: {}".format(len(env.data_buffer))
         done = env.step_episode(obs)
         if done:
             obs = env.next_episode()
         else:
             obs = env.reset()
         done = False
-        if episode % 30 == 0:
+        if episode % 10 == 0:
             obs = env.reset()
-        if episode % 100 == 0:
+        if episode % 50 == 0:
             print("\n Graph mapping: ", env.Graph.state_mapping)
     print("\n Graph mapping: ", env.Graph.state_mapping)

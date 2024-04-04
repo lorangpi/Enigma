@@ -442,7 +442,7 @@ class Robosuite_Hanoi_Detector:
         dist_xy = np.linalg.norm(obj1_pos[:-1] - obj2_pos[:-1])
         dist_z = np.linalg.norm(obj1_pos[2] - obj2_pos[2])
         #return dist_xyz < 0.05 and obj1_pos[2] > obj2_pos[2]#dist_xyz < 0.05 and dist_xy < 0.05 and obj1_pos[2] > obj2_pos[2]
-        return dist_xy < 0.05 and obj1_pos[2] > obj2_pos[2] and dist_z < 0.05
+        return dist_xy < 0.025 and obj1_pos[2] > obj2_pos[2] and dist_z < 0.05
     
     def clear(self, obj):
         for other_obj in self.objects:
