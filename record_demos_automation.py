@@ -286,8 +286,9 @@ class RecordDemos(gym.Wrapper):
                     new_state = {k: new_state[k] for k in new_state if 'on' in k}
                     # Filter only the values that are True
                     state = {key: value for key, value in state.items() if value}
+                    new_state = {key: value for key, value in new_state.items() if value}
                     # if state has not 3 keys, return None
-                    if len(state) != 3:
+                    if len(state) != 3 or len(new_state) != 3:
                         return None
                     self.Graph.learn(state, "MOVE", new_state)
                     self.symbolic_buffer.append((state, "MOVE", new_state))
