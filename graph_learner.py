@@ -3,6 +3,33 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
+# class GraphLearner:
+#     def __init__(self, file_path, display_graph=False):
+#         self.graph = nx.DiGraph()
+#         self.bisimulation = None
+#         self.display_graph = display_graph
+#         self.file_path = file_path
+#         self.state_mapping = {}
+
+#     def add_state(self, state):
+#         if state not in self.state_mapping.values():
+#             state_name = str(len(self.state_mapping))
+#             self.state_mapping[state_name] = state
+
+#     def learn(self, state, action, next_state):
+#         #print("Learning the transition: ", state, action, next_state)
+#         self.add_state(state)
+#         self.add_state(next_state)
+#         # Use the state names instead of the values
+#         state = next(key for key, value in self.state_mapping.items() if value == state)
+#         next_state = next(key for key, value in self.state_mapping.items() if value == next_state)
+#         #print(state, action, next_state)
+#         self.graph.add_edge(state, next_state, label=action)
+#         print(f"Edge attributes: {nx.get_edge_attributes(self.graph, 'label')}")  # Add this line
+#         self.bisimulation = self.compute_bisimulation_graph(self.graph)
+#         self.write_graph_to_file(self.file_path + "bisimulation.dfa", self.bisimulation)
+#         self.write_graph_to_file(self.file_path + "graph.dfa", self.graph)
+
 class GraphLearner:
     def __init__(self, file_path, display_graph=False):
         self.graph = nx.DiGraph()
@@ -10,18 +37,25 @@ class GraphLearner:
         self.display_graph = display_graph
         self.file_path = file_path
         self.state_mapping = {}
+        self.state_set = set()
 
     def add_state(self, state):
-        if state not in self.state_mapping.values():
+        # Filter only the values that are True
+        state = {key: value for key, value in state.items() if value}
+        state_frozenset = frozenset(state.items())
+        if state_frozenset not in self.state_set:
             state_name = str(len(self.state_mapping))
             self.state_mapping[state_name] = state
+            self.state_set.add(state_frozenset)
+        else:
+            state_name = next(key for key, value in self.state_mapping.items() if value == state)
+        return state_name
 
     def learn(self, state, action, next_state):
-        self.add_state(state)
-        self.add_state(next_state)
-        # Use the state names instead of the values
-        state = next(key for key, value in self.state_mapping.items() if value == state)
-        next_state = next(key for key, value in self.state_mapping.items() if value == next_state)
+        #print("Learning the transition: ", state, action, next_state)
+        state = self.add_state(state)
+        next_state = self.add_state(next_state)
+        #print(state, action, next_state)
         self.graph.add_edge(state, next_state, label=action)
         print(f"Edge attributes: {nx.get_edge_attributes(self.graph, 'label')}")  # Add this line
         self.bisimulation = self.compute_bisimulation_graph(self.graph)

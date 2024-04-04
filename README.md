@@ -8,6 +8,10 @@
 # To Test a PDDL Domain and PDDL Problem file:
 Metric-FF-v2.1/./ff -o ./PDDL/Domains/domain_blonet.pddl -f ./PDDL/Problems/problem_blonet.pddl -s 0
 
+or
+
+./fast-downward.py [options] <domain.pddl> <problem.pddl>
+
 # To record demonstrations on the Hanoi Problem enviornment:
 python record_demos.py
 

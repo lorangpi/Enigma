@@ -354,7 +354,7 @@ class Robosuite_Hanoi_Detector:
     def __init__(self, env):
         self.env = env
         self.objects = ['cube1', 'cube2', 'cube3']
-        self.object_id = {'cube1': 'cube1_main', 'cube2': 'cube2_main', 'cube3': 'cube3_main'}
+        self.object_id = {'cube1': 'cube1_main', 'cube2': 'cube2_main', 'cube3': 'cube3_main', 'peg1': 'peg1_main', 'peg2': 'peg2_main', 'peg3': 'peg3_main'}
         self.object_areas = ['peg1', 'peg2', 'peg3']
         self.area_pos = {'peg1': self.env.pegs_xy_center[0], 'peg2': self.env.pegs_xy_center[1], 'peg3': self.env.pegs_xy_center[2]}
         self.grippers_areas = ['pick', 'drop', 'activate', 'lightswitch']
@@ -409,12 +409,15 @@ class Robosuite_Hanoi_Detector:
         obj_body = self.env.sim.model.body_name2id(self.object_id[obj])
         if gripper == 'gripper':
             gripper_pos = np.asarray(self.env.sim.data.body_xpos[self.env.gripper_body])
-            obj_pos = np.asarray(self.env.sim.data.body_xpos[obj_body])
+            if obj in self.object_areas:
+                obj_pos = self.area_pos[obj]
+            else:
+                obj_pos = np.asarray(self.env.sim.data.body_xpos[obj_body])
             dist_xy = np.linalg.norm(gripper_pos[:-1] - obj_pos[:-1])
             if return_distance:
                 return dist_xy
             else:
-                return dist_xy < 0.02
+                return dist_xy < 0.005
     
     def at_grab_level(self, gripper, obj, return_distance=False):
         obj_body = self.env.sim.model.body_name2id(self.object_id[obj])
@@ -436,7 +439,10 @@ class Robosuite_Hanoi_Detector:
         else:
             obj2_pos = self.env.sim.data.body_xpos[self.env.obj_body_id[obj2]]
         dist_xyz = np.linalg.norm(obj1_pos - obj2_pos)
-        return dist_xyz < 0.05 and obj1_pos[2] > obj2_pos[2]
+        dist_xy = np.linalg.norm(obj1_pos[:-1] - obj2_pos[:-1])
+        dist_z = np.linalg.norm(obj1_pos[2] - obj2_pos[2])
+        #return dist_xyz < 0.05 and obj1_pos[2] > obj2_pos[2]#dist_xyz < 0.05 and dist_xy < 0.05 and obj1_pos[2] > obj2_pos[2]
+        return dist_xy < 0.05 and obj1_pos[2] > obj2_pos[2] and dist_z < 0.05
     
     def clear(self, obj):
         for other_obj in self.objects:
@@ -445,6 +451,31 @@ class Robosuite_Hanoi_Detector:
                     return False
         return True
     
+    def open(self, gripper):
+        if gripper == 'gripper':
+            """
+            Returns True if the gripper is open, False otherwise.
+            """
+            gripper = self.env.robots[0].gripper
+            # Print gripper aperture
+            left_finger_pos = np.asarray(self.env.sim.data.body_xpos[self.env.sim.model.body_name2id("gripper0_left_inner_finger")])
+            right_finger_pos = np.asarray(self.env.sim.data.body_xpos[self.env.sim.model.body_name2id("gripper0_right_inner_finger")])
+            aperture = np.linalg.norm(left_finger_pos - right_finger_pos)
+            #print(f'Gripper aperture: {aperture}')
+            return aperture > 0.13
+        else:
+            return None
+    
+    def picked_up(self, obj, return_distance=False):
+        active_obj = self.select_object(obj)
+        z_target = self.env.table_offset[2] + 0.45
+        object_z_loc = self.env.sim.data.body_xpos[self.env.obj_body_id[active_obj.name]][2]
+        z_dist = z_target - object_z_loc
+        if return_distance:
+            return z_dist
+        else:
+            return z_dist < 0.15
+
     def get_groundings(self, as_dict=False, binary_to_float=False, return_distance=False):
             
             groundings = {}
@@ -468,7 +499,7 @@ class Robosuite_Hanoi_Detector:
 
             # Check if the gripper is over each object
             for gripper in ['gripper']:
-                for obj in self.objects:
+                for obj in self.objects+self.object_areas:
                     over_value = self.over(gripper, obj, return_distance=return_distance)
                     if return_distance:
                         over_value = over_value / self.max_distance
@@ -496,11 +527,26 @@ class Robosuite_Hanoi_Detector:
                         groundings[f'on({obj1},{obj2})'] = on_value
 
             # Check if each object is clear
-            for obj in self.objects:
+            for obj in self.objects+self.object_areas:
                 clear_value = self.clear(obj)
                 if binary_to_float:
                     clear_value = float(clear_value)
                 groundings[f'clear({obj})'] = clear_value
+            
+            # Check if the gripper is open
+            gripper_open_value = self.open('gripper')
+            if binary_to_float:
+                gripper_open_value = float(gripper_open_value)
+            groundings['open_gripper(gripper)'] = gripper_open_value
+
+            # Check if an object has been picked up
+            for obj in self.objects:
+                picked_up_value = self.picked_up(obj, return_distance=return_distance)
+                if return_distance:
+                    picked_up_value = picked_up_value / self.max_distance
+                if binary_to_float:
+                    picked_up_value = float(picked_up_value)
+                groundings[f'picked_up({obj})'] = picked_up_value
 
             return dict(sorted(groundings.items())) if as_dict else np.asarray([v for k, v in sorted(groundings.items())])
     

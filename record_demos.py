@@ -193,6 +193,7 @@ if __name__ == "__main__":
         has_offscreen_renderer=True,
         horizon=100000000,
         render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+        random_reset=False,
     )
     env.viewer.add_keypress_callback(device.on_press)
 
