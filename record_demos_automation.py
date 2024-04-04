@@ -407,14 +407,14 @@ if __name__ == "__main__":
     done = False
     for episode in range(args.episodes):
         print("Episode: {}".format(episode))
-        print("Number of recorded episodes: {}".format(len(env.data_buffer))
+        print("Number of recorded episodes: {}".format(len(env.data_buffer)))
         done = env.step_episode(obs)
         if done:
             obs = env.next_episode()
         else:
             obs = env.reset()
         done = False
-        if episode % 10 == 0:
+        if episode % 10 == 0 and episode > 0:
             obs = env.reset()
         if episode % 50 == 0:
             print("\n Graph mapping: ", env.Graph.state_mapping)
