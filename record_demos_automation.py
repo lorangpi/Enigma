@@ -252,8 +252,8 @@ class RecordDemos(gym.Wrapper):
 
     def next_episode(self):
         # Data buffer saves a tuple of (trajectory[obs, action, next_obs, done, reward], symbolic trajectory[state, "MOVE", next_state], task)
-        self.data_buffer.append([self.episode_buffer, self.symbolic_buffer, "on({}, {})".format(self.obj_to_pick, self.place_to_drop)])
-        self.save_buffer(self.data_buffer, self.args.traces + 'traj.zip')
+        #self.data_buffer.append([self.episode_buffer, self.symbolic_buffer, "on({}, {})".format(self.obj_to_pick, self.place_to_drop)])
+        #self.save_buffer(self.data_buffer, self.args.traces + 'traj.zip')
         #self.save_buffer(self.symbolic_buffer, self.args.traces + 'sym.zip')
         self.episode_buffer = list() # 1 episode here consists of a trajectory between 2 symbolic nodes
         self.symbolic_buffer = list()
@@ -290,6 +290,14 @@ class RecordDemos(gym.Wrapper):
                     # if state has not 3 keys, return None
                     if len(state) != 3 or len(new_state) != 3:
                         return None
+                    # Check if cubes have fallen from other subes, i.e., check if two or more cubes are on the same peg
+                    for test_state in [state, new_state]:
+                        pegs = []
+                        for relation, value in test_state.items():
+                            _, peg = relation.split('(')[1].split(',')
+                            pegs.append(peg)
+                        if len(pegs) != len(set(pegs)):
+                            return None
                     self.Graph.learn(state, "MOVE", new_state)
                     self.symbolic_buffer.append((state, "MOVE", new_state))
                     state = new_state
