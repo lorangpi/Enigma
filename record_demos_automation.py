@@ -252,8 +252,8 @@ class RecordDemos(gym.Wrapper):
 
     def next_episode(self):
         # Data buffer saves a tuple of (trajectory[obs, action, next_obs, done, reward], symbolic trajectory[state, "MOVE", next_state], task)
-        #self.data_buffer.append([self.episode_buffer, self.symbolic_buffer, "on({}, {})".format(self.obj_to_pick, self.place_to_drop)])
-        #self.save_buffer(self.data_buffer, self.args.traces + 'traj.zip')
+        self.data_buffer.append([self.episode_buffer, self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)])
+        self.save_buffer(self.data_buffer, self.args.traces + 'traj.zip')
         #self.save_buffer(self.symbolic_buffer, self.args.traces + 'sym.zip')
         self.episode_buffer = list() # 1 episode here consists of a trajectory between 2 symbolic nodes
         self.symbolic_buffer = list()
@@ -266,7 +266,7 @@ class RecordDemos(gym.Wrapper):
         done_drop, obs = self.drop_reset(obs)
         return done_drop
 
-    def record_demos(self, obs, action, next_obs, state_memory, new_state, reward=-1.0, done=False, info=None):
+    def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", reward=-1.0, done=False, info=None):
         # Step through the simulation and render
         self.episode_buffer.append((obs, action, next_obs, done, reward))
 
@@ -274,34 +274,40 @@ class RecordDemos(gym.Wrapper):
         state = copy.deepcopy(state_memory)
         if new_state != state:
             # Check if the change is linked a grounded predicate 'on(o1,o2)' or 'clear(o1)'
-            diff = {k: new_state[k] for k in new_state if k not in state or new_state[k] != state[k]}
-            # If any key in diff has 'on' in it and verify that the value associated with that key is 1.0
-            if any(['on' in k and diff[k] == 1.0 for k in diff]):
-                if not(any(['grasped' in k and diff[k] == 1.0 for k in diff])):
-                    print("Change detected: {}".format(diff))
-                    #print("State: {}".format(new_state))
-                    # Filter only the keys that have 'on' in them
-                    state_memory = copy.deepcopy(new_state)
-                    state = {k: state[k] for k in state if 'on' in k}
-                    new_state = {k: new_state[k] for k in new_state if 'on' in k}
-                    # Filter only the values that are True
-                    state = {key: value for key, value in state.items() if value}
-                    new_state = {key: value for key, value in new_state.items() if value}
-                    # if state has not 3 keys, return None
-                    if len(state) != 3 or len(new_state) != 3:
+            transition = {k: new_state[k] for k in new_state if k not in state or new_state[k] != state[k]}
+            # If any key in transition has 'on' in it and verify that the value associated with that key is 1.0
+            if self.switched_graph_state(transition):
+                print("Change detected: {}".format(transition))
+                #print("State: {}".format(new_state))
+                # Filter only the keys that have 'on' in them
+                state_memory = copy.deepcopy(new_state)
+                state = {k: state[k] for k in state if 'on' in k}
+                new_state = {k: new_state[k] for k in new_state if 'on' in k}
+                # Filter only the values that are True
+                state = {key: value for key, value in state.items() if value}
+                new_state = {key: value for key, value in new_state.items() if value}
+                # if state has not 3 keys, return None
+                if len(state) != 3 or len(new_state) != 3:
+                    return None
+                # Check if cubes have fallen from other subes, i.e., check if two or more cubes are on the same peg
+                for test_state in [state, new_state]:
+                    pegs = []
+                    for relation, value in test_state.items():
+                        _, peg = relation.split('(')[1].split(',')
+                        pegs.append(peg)
+                    if len(pegs) != len(set(pegs)):
                         return None
-                    # Check if cubes have fallen from other subes, i.e., check if two or more cubes are on the same peg
-                    for test_state in [state, new_state]:
-                        pegs = []
-                        for relation, value in test_state.items():
-                            _, peg = relation.split('(')[1].split(',')
-                            pegs.append(peg)
-                        if len(pegs) != len(set(pegs)):
-                            return None
-                    self.Graph.learn(state, "MOVE", new_state)
-                    self.symbolic_buffer.append((state, "MOVE", new_state))
-                    state = new_state
+                self.Graph.learn(state, sym_action, new_state)
+                self.symbolic_buffer.append((state, sym_action, new_state))
+                state = new_state
         return state_memory
+
+    def switched_graph_state(self, transition, mode='simple'):
+        if mode == 'simple':
+            if any(['on' in k and transition[k] == 1.0 for k in transition]):
+                if not(any(['grasped' in k and transition[k] == 1.0 for k in transition])):
+                    return True
+        return False
 
     def sample_task(self):
         # Sample a random task
