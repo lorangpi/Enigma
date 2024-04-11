@@ -1,11 +1,10 @@
-import os, argparse, time, zipfile, pickle, copy, json
+import os, argparse, time, zipfile, pickle, copy
 import numpy as np
 import robosuite as suite
 from robosuite.wrappers import GymWrapper
 from datetime import datetime
 import gymnasium as gym
 import numpy as np
-from stable_baselines3 import SAC
 from detector import Robosuite_Hanoi_Detector
 from graph_learner import GraphLearner
 
@@ -253,10 +252,9 @@ class RecordDemos(gym.Wrapper):
 
     def next_episode(self):
         # Data buffer saves a tuple of (trajectory[obs, action, next_obs, done, reward], symbolic trajectory[state, "MOVE", next_state], task)
+        print(self.episode_buffer, self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop))
         self.data_buffer.append([self.episode_buffer, self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)])
         self.save_buffer(self.data_buffer, self.args.traces + 'traj.zip')
-        self.save_buffer_as_json(self.data_buffer, self.args.traces + 'traj.json.zip')
-        #self.save_buffer(self.symbolic_buffer, self.args.traces + 'sym.zip')
         self.episode_buffer = list() # 1 episode here consists of a trajectory between 2 symbolic nodes
         self.symbolic_buffer = list()
         self.sample_task()
@@ -344,56 +342,6 @@ class RecordDemos(gym.Wrapper):
         self.place_to_drop = place_to_drop
         print("Task: Pick {} and drop it on {}".format(self.obj_to_pick, self.place_to_drop))
 
-    def convert_to_dict_format(self, data_buffer):
-        dict_format_buffer = []
-        for episode_buffer, symbolic_buffer, task in data_buffer:
-            for transition in episode_buffer:
-                obs, act, next_obs, reward, done = transition
-                # Convert numpy ndarrays to lists
-                if isinstance(obs, np.ndarray):
-                    obs = obs.tolist()
-                if isinstance(act, np.ndarray):
-                    act = act.tolist()
-                if isinstance(next_obs, np.ndarray):
-                    next_obs = next_obs.tolist()
-                if isinstance(reward, int):
-                    reward = float(reward)
-                # Convert numpy booleans to Python booleans
-                if isinstance(done, np.bool_):
-                    done = bool(done)
-                dict_format_buffer.append({
-                    "obs": obs,
-                    "acts": act,
-                    "next_obs": next_obs,
-                    "rews": reward,
-                    "dones": done,
-                    "infos": {"symbolic_trajectory": symbolic_buffer, "task": task}
-                })
-        return dict_format_buffer
-
-    def save_buffer_as_json(self, data_buffer, file_path):
-        # Convert the data buffer to dictionary format
-        dict_format_buffer = self.convert_to_dict_format(data_buffer)
-
-        # Convert the dictionary format buffer to JSON
-        json_data = json.dumps(dict_format_buffer)
-
-        # Write the JSON data to a zip file
-        with zipfile.ZipFile(file_path, 'w') as zip_file:
-            with zip_file.open('data.json', 'w', force_zip64=True) as file:
-                file.write(json_data.encode('utf-8'))
-
-    def load_json_buffer(self, file_path):
-        # Open the zip file
-        with zipfile.ZipFile(file_path, 'r') as zip_file:
-            # Open the JSON file
-            with zip_file.open('data.json', 'r') as file:
-                # Load the JSON data
-                json_data = file.read().decode('utf-8')
-                data_buffer = json.loads(json_data)
-
-        return data_buffer
-
     def save_buffer(self, data_buffer, file_path):
         # Convert the data buffer to bytes
         data_bytes = pickle.dumps(data_buffer)
@@ -403,16 +351,6 @@ class RecordDemos(gym.Wrapper):
             with zip_file.open('data.pkl', 'w', force_zip64=True) as file:
                 file.write(data_bytes)
 
-    def load_buffer(self, file_path):
-        # Read the bytes from the zip file
-        with zipfile.ZipFile(file_path, 'r') as zip_file:
-            with zip_file.open('data.pkl', 'r') as file:
-                data_bytes = file.read()
-
-        # Convert the bytes back to a list of lists
-        data_buffer = pickle.loads(data_bytes)
-
-        return data_buffer
 
 if __name__ == "__main__":
     # Define the command line arguments
