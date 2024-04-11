@@ -39,7 +39,7 @@ class RoboSuite_PickPlace_Detector:
         if return_distance:
             return dist
         else:
-            return dist < self.area_size[area]
+            return bool(dist < self.area_size[area])
 
     def at_gripper(self, gripper, area, return_distance=False):
         if gripper == 'gripper':
@@ -60,7 +60,7 @@ class RoboSuite_PickPlace_Detector:
         if return_distance:
             return dist
         else:
-            return dist < self.area_size[area]
+            return bool(dist < self.area_size[area])
 
     def grasped(self, obj):
         if obj == 'door':
@@ -98,7 +98,7 @@ class RoboSuite_PickPlace_Detector:
         if return_distance:
             return z_dist
         else:
-            return z_dist < 0.15
+            return bool(z_dist < 0.15)
 
     def dropped_off(self):
         """
@@ -114,10 +114,10 @@ class RoboSuite_PickPlace_Detector:
 
         # returns True if a single object is in the correct bin
         if self.env.single_object_mode in {1, 2}:
-            return np.sum(self.env.objects_in_bins) > 0
+            return bool(np.sum(self.env.objects_in_bins) > 0)
 
         # returns True if all objects are in correct bins
-        return np.sum(self.env.objects_in_bins) == len(self.env.objects)
+        return bool(np.sum(self.env.objects_in_bins) == len(self.env.objects))
 
     def open(self, obj, return_distance=False):
         """
@@ -145,7 +145,7 @@ class RoboSuite_PickPlace_Detector:
                 # Calculate the relative door aperture as a percentage of the range between closed and maximum positions
                 qpos_max = hinge.get("range").split(" ")[1]
                 relative_aperture = ((float(qpos) - float(qpos_min)) / (float(qpos_max) - float(qpos_min))) * 100
-                return relative_aperture / 100 if return_distance else relative_aperture > 10
+                return relative_aperture / 100 if return_distance else bool(relative_aperture > 10)
 
         elif obj == 'gripper':
             """
@@ -157,7 +157,7 @@ class RoboSuite_PickPlace_Detector:
             right_finger_pos = np.asarray(self.env.sim.data.body_xpos[self.env.sim.model.body_name2id("gripper0_right_inner_finger")])
             aperture = np.linalg.norm(left_finger_pos - right_finger_pos)
             #print(f'Gripper aperture: {aperture}')
-            return aperture > 0.13
+            return bool(aperture > 0.13)
         return None
 
     def door_locked(self):
@@ -181,7 +181,7 @@ class RoboSuite_PickPlace_Detector:
             if return_distance:
                 return dist_xy
             else:
-                return dist_xy < 0.02
+                return bool(dist_xy < 0.02)
         else:
             return None
 
@@ -197,7 +197,7 @@ class RoboSuite_PickPlace_Detector:
             if return_distance:
                 return dist_z
             else:
-                return dist_z < 0.005
+                return bool(dist_z < 0.005)
         else:
             return None
 
@@ -368,7 +368,7 @@ class Robosuite_Hanoi_Detector:
         if return_distance:
             return dist
         else:
-            return dist < self.area_size
+            return bool(dist < self.area_size)
 
     def select_object(self, obj_name):
         """
@@ -417,7 +417,7 @@ class Robosuite_Hanoi_Detector:
             if return_distance:
                 return dist_xy
             else:
-                return dist_xy < 0.005
+                return bool(dist_xy < 0.005)
     
     def at_grab_level(self, gripper, obj, return_distance=False):
         obj_body = self.env.sim.model.body_name2id(self.object_id[obj])
@@ -428,7 +428,7 @@ class Robosuite_Hanoi_Detector:
             if return_distance:
                 return dist_z
             else:
-                return dist_z < 0.005
+                return bool(dist_z < 0.005)
     
     def on(self, obj1, obj2):
         obj1_pos = self.env.sim.data.body_xpos[self.env.obj_body_id[obj1]]
@@ -442,7 +442,7 @@ class Robosuite_Hanoi_Detector:
         dist_xy = np.linalg.norm(obj1_pos[:-1] - obj2_pos[:-1])
         dist_z = np.linalg.norm(obj1_pos[2] - obj2_pos[2])
         #return dist_xyz < 0.05 and obj1_pos[2] > obj2_pos[2]#dist_xyz < 0.05 and dist_xy < 0.05 and obj1_pos[2] > obj2_pos[2]
-        return dist_xy < 0.025 and obj1_pos[2] > obj2_pos[2] and dist_z < 0.05
+        return bool(dist_xy < 0.025 and obj1_pos[2] > obj2_pos[2] and dist_z < 0.05)
     
     def clear(self, obj):
         for other_obj in self.objects:
@@ -462,7 +462,7 @@ class Robosuite_Hanoi_Detector:
             right_finger_pos = np.asarray(self.env.sim.data.body_xpos[self.env.sim.model.body_name2id("gripper0_right_inner_finger")])
             aperture = np.linalg.norm(left_finger_pos - right_finger_pos)
             #print(f'Gripper aperture: {aperture}')
-            return aperture > 0.13
+            return bool(aperture > 0.13)
         else:
             return None
     
@@ -474,7 +474,7 @@ class Robosuite_Hanoi_Detector:
         if return_distance:
             return z_dist
         else:
-            return z_dist < 0.15
+            return bool(z_dist < 0.15)
 
     def get_groundings(self, as_dict=False, binary_to_float=False, return_distance=False):
             
