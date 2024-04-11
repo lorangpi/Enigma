@@ -361,7 +361,6 @@ class RecordDemos(gym.Wrapper):
                 # Convert numpy booleans to Python booleans
                 if isinstance(done, np.bool_):
                     done = bool(done)
-                print(type(obs), type(act), type(next_obs), type(reward), type(done), type(symbolic_buffer))
                 dict_format_buffer.append({
                     "obs": obs,
                     "acts": act,
