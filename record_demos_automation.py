@@ -270,8 +270,10 @@ class RecordDemos(gym.Wrapper):
         done_drop, obs = self.drop_reset(obs)
         return done_drop
 
-    def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="default", reward=-1.0, done=False, info=None):
+    def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="trace", reward=-1.0, done=False, info=None):
         # Step through the simulation and render
+        if not(self.args.split_action):
+            action_step = 'trace'
         if action_step not in self.action_steps:
             self.action_steps.append(action_step)
         if action_step not in self.episode_buffer.keys():
@@ -373,6 +375,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
     parser.add_argument('--render', action='store_true', help='Render the initial state')
+    parser.add_argument('--split_action', action='store_true', help='Split the MOVE action into reach_pick, pick, reach_drop, drop')
 
     args = parser.parse_args()
     # Set the random seed
