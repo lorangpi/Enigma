@@ -431,11 +431,14 @@ if __name__ == "__main__":
         obs = env.reset()
     # Run the environment
     done = False
-    for episode in range(args.episodes):
+    num_recorder_eps = 0
+    episode = 0
+    while num_recorder_eps < args.episodes:
         print("Episode: {}".format(episode+1))
         keys = list(env.data_buffer.keys())
         if len(keys) > 0:
-            print("Number of recorded episodes: {}".format(len(env.data_buffer[keys[0]])))
+            num_recorder_eps = len(env.data_buffer[keys[0]])
+            print("Number of recorded episodes: {}".format(num_recorder_eps))
         done = env.step_episode(obs)
         if done:
             obs = env.next_episode()
@@ -446,4 +449,5 @@ if __name__ == "__main__":
             obs = env.reset()
         if episode % 50 == 0:
             print("\n Graph mapping: ", env.Graph.state_mapping)
+        episode += 1
     print("\n Graph mapping: ", env.Graph.state_mapping)
