@@ -260,9 +260,8 @@ class RecordDemos(gym.Wrapper):
             else:
                 self.data_buffer[step].append((self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)))
         self.save_buffer(self.data_buffer, self.args.traces)
-        self.episode_buffer = dict() # 1 episode here consists of a trajectory between 2 symbolic nodes
-        self.symbolic_buffer = list()
-        self.sample_task()
+        obs = self.reset()
+        return obs
 
     def step_episode(self, obs):
         done_pick, obs = self.pick_reset(obs)
@@ -281,6 +280,7 @@ class RecordDemos(gym.Wrapper):
             if "drop" in action_step:
                 goal = self.goal_mapping[self.place_to_drop]
             obs = np.concatenate((obs, [goal]))
+            next_obs = np.concatenate((next_obs, [goal]))
         if action_step not in self.action_steps:
             self.action_steps.append(action_step)
         if action_step not in self.episode_buffer.keys():
