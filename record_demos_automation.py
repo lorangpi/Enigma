@@ -91,7 +91,7 @@ class RecordDemos(gym.Wrapper):
         #print("Opening gripper...")
         while not state['open_gripper(gripper)']:
             action = [0,0,0,-0.1]
-            next_obs = self.env.step(action)
+            next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
