@@ -20,7 +20,7 @@ env = suite.make(
     render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
 )
 env = GymWrapper(env, keys=['robot0_proprio-state', 'object-state'])
-env = DropWrapper( , render_init=True)
+env = DropWrapper(env, render_init=True)
 
 device = Keyboard()
 env.viewer.add_keypress_callback(device.on_press)

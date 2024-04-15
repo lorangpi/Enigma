@@ -63,7 +63,7 @@ class RecordDemos(gym.Wrapper):
         #print("Moving up...")
         for _ in range(5):
             action = [0,0,1,0]
-            next_obs, _, _, _, _  = self.env.step()
+            next_obs, _, _, _, _  = self.env.step(action)
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.env.render() if self.render_init else None
             self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="reach_pick")
@@ -247,9 +247,6 @@ class RecordDemos(gym.Wrapper):
 
     def reset(self, seed=None):
         # Reset the environment
-        #obs = self.env.viewer._get_observations() if self.env.viewer_get_obs else self.env._get_observations()
-        # Flatten the observation
-        #obs = self.env._flatten_obs(obs)
         self.episode_buffer = dict() # 1 episode here consists of a trajectory between 2 symbolic nodes
         self.symbolic_buffer = list()
         obs = self.env.reset()
@@ -277,6 +274,7 @@ class RecordDemos(gym.Wrapper):
         return done_drop
 
     def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="trace", reward=-1.0, done=False, info=None):
+        print("OBS: ", obs)
         # Step through the simulation and render
         if not(self.args.split_action):
             action_step = 'trace'
@@ -419,16 +417,14 @@ if __name__ == "__main__":
         random_reset=True,
     )
 
+    # Wrap the environment
+    env = GymWrapper(env)
+    env = RecordDemos(env, args)
     # Reset the environment
     try:
         obs, _ = env.reset()
     except:
         obs = env.reset()
-
-    # Wrap the environment
-    env = GymWrapper(env)
-    env = RecordDemos(env, args)
-    env.reset()
     # Run the environment
     done = False
     for episode in range(args.episodes):
