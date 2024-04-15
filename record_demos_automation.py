@@ -62,10 +62,11 @@ class RecordDemos(gym.Wrapper):
         self.reset_step_count = 0
         #print("Moving up...")
         for _ in range(5):
-            next_obs, _, _, _, _  = self.env.step([0,0,1,0])
+            action = [0,0,1,0]
+            next_obs, _, _, _, _  = self.env.step()
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.env.render() if self.render_init else None
-            self.state_memory = self.record_demos(obs, [0,0,1,0], next_obs, self.state_memory, next_state, action_step="reach_pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="reach_pick")
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -91,10 +92,11 @@ class RecordDemos(gym.Wrapper):
 
         #print("Opening gripper...")
         while not state['open_gripper(gripper)']:
-            net_obs = self.env.step([0,0,0,-0.1])
+            action = [0,0,0,-0.1]
+            next_obs = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, [0,0,0,-0.1], next_obs, self.state_memory, next_state, action_step="pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -125,10 +127,11 @@ class RecordDemos(gym.Wrapper):
 
         #print("Closing gripper...")
         while not state['grasped({})'.format(self.obj_to_pick)]:
-            next_obs, _, _, _, _  = self.env.step([0,0,0,0.1])
+            action = [0,0,0,0.1]
+            next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, [0,0,0,0.1], next_obs, self.state_memory, next_state, action_step="pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -140,10 +143,11 @@ class RecordDemos(gym.Wrapper):
 
         #print("Lifting object...")
         while not state['picked_up({})'.format(self.obj_to_pick)]:
-            next_obs, _, _, _, _  = self.env.step([0,0,0.4,0])
+            action = [0,0,0.4,0]
+            next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, [0,0,0.2,0], next_obs, self.state_memory, next_state, action_step="pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -214,10 +218,11 @@ class RecordDemos(gym.Wrapper):
 
         #print("dropping object...")
         while state['grasped({})'.format(self.obj_to_pick)]:
-            next_obs, _, _, _, _  = self.env.step([0,0,0,-0.1])
+            action = [0,0,0,-0.1]
+            next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, [0,0,0,-0.1], next_obs, self.state_memory, next_state, action_step="drop")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="drop")
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -229,10 +234,11 @@ class RecordDemos(gym.Wrapper):
 
         #print("Moving up...")
         for _ in range(5):
-            next_obs, _, _, _, _  = self.env.step([0,0,1,0])
+            action = [0,0,1,0]
+            next_obs, _, _, _, _  = self.env.step(action)
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.env.render() if self.render_init else None
-            self.state_memory = self.record_demos(obs, [0,0,0.5,0], next_obs, self.state_memory, next_state, action_step="drop")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="drop")
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
