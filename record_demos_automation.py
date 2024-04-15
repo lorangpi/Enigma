@@ -258,9 +258,9 @@ class RecordDemos(gym.Wrapper):
         # Data buffer saves a tuple of (trajectory[obs, action, next_obs, done, reward], symbolic trajectory[state, "MOVE", next_state], task)
         for step in self.action_steps:
             if step not in self.data_buffer.keys():
-                self.data_buffer[step] = [self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)]
+                self.data_buffer[step] = [(self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop))]
             else:
-                self.data_buffer[step].append([self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)])
+                self.data_buffer[step].append((self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)))
         self.save_buffer(self.data_buffer, self.args.traces)
         self.episode_buffer = dict() # 1 episode here consists of a trajectory between 2 symbolic nodes
         self.symbolic_buffer = list()
@@ -274,7 +274,7 @@ class RecordDemos(gym.Wrapper):
         return done_drop
 
     def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="trace", reward=-1.0, done=False, info=None):
-        print("OBS: ", obs)
+#        print("OBS: ", obs)
         # Step through the simulation and render
         if not(self.args.split_action):
             action_step = 'trace'
