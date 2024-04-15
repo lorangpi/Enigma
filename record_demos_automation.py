@@ -274,7 +274,6 @@ class RecordDemos(gym.Wrapper):
         return done_drop
 
     def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="trace", reward=-1.0, done=False, info=None):
-        print("OBS: ", obs)
         # Step through the simulation and render
         if not(self.args.split_action):
             action_step = 'trace'

@@ -2,6 +2,7 @@ import numpy as np
 import robosuite as suite
 from robosuite.wrappers.gym_wrapper import GymWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_drop import DropWrapper
+from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
 from robosuite.devices import Keyboard
 from robosuite.utils.input_utils import input2action
 
@@ -20,7 +21,7 @@ env = suite.make(
     render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
 )
 env = GymWrapper(env, keys=['robot0_proprio-state', 'object-state'])
-env = DropWrapper(env, render_init=True)
+env = PickWrapper(env, render_init=True)
 
 device = Keyboard()
 env.viewer.add_keypress_callback(device.on_press)
