@@ -18,6 +18,7 @@ env = suite.make(
     has_renderer=True,
     has_offscreen_renderer=True,
     horizon=100000000,
+    #use_camera_obs=False,
     render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
 )
 env = GymWrapper(env, keys=['robot0_proprio-state', 'object-state'])

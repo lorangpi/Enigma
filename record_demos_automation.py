@@ -33,11 +33,9 @@ class RecordDemos(gym.Wrapper):
         self.obj_to_pick = 'cube1_main'
         self.place_to_drop = 'cube2_main'
         self.count_step = 0
-        # Adjust the positions to its referential (the bin position)
-        #self.peg1_xy = self.env.peg1_pos[:2] + self.env.bin1_pos[:2]
-        #self.peg2_xy = self.env.peg2_pos[:2] + self.env.bin1_pos[:2]
-        #self.peg3_xy = self.env.peg3_pos[:2] + self.env.bin1_pos[:2]
+
         # Environment parameters
+        self.goal_mapping = {'cube1': 0, 'cube2': 1, 'cube3': 2, 'peg1': 3, 'peg2': 4, 'peg3': 5}
         self.ray_bins = {'peg': 0.15}
         self.detector = Robosuite_Hanoi_Detector(self)
         self.area_pos = {'peg1': self.pegs_xy_center[0], 'peg2': self.pegs_xy_center[1], 'peg3': self.pegs_xy_center[2]}
@@ -277,6 +275,12 @@ class RecordDemos(gym.Wrapper):
         # Step through the simulation and render
         if not(self.args.split_action):
             action_step = 'trace'
+        else:
+            if "pick" in action_step:
+                goal = self.goal_mapping[self.obj_to_pick]
+            if "drop" in action_step:
+                goal = self.goal_mapping[self.place_to_drop]
+            obs = np.concatenate((obs, [goal]))
         if action_step not in self.action_steps:
             self.action_steps.append(action_step)
         if action_step not in self.episode_buffer.keys():
@@ -412,7 +416,8 @@ if __name__ == "__main__":
         has_renderer=args.render,
         has_offscreen_renderer=True,
         horizon=100000000,
-        render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+        use_camera_obs=False,
+        #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
     )
 
