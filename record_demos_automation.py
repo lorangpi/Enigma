@@ -63,7 +63,7 @@ class RecordDemos(gym.Wrapper):
         #print("Moving up...")
         for _ in range(5):
             action = [0,0,1,0]
-            next_obs, _, _, _, _  = self.env.step()
+            next_obs, _, _, _, _  = self.env.step(action)
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.env.render() if self.render_init else None
             self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="reach_pick")
