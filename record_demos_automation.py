@@ -143,7 +143,7 @@ class RecordDemos(gym.Wrapper):
             next_obs, _, _, _, _  = self.env.step([0,0,0.4,0])
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, [0,0,0.2,0], next_obs, self.state_memory, next_state, action_step="pick")
+            self.state_memory = self.record_demos(obs, [0,0,0.4,0], next_obs, self.state_memory, next_state, action_step="pick")
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -232,7 +232,7 @@ class RecordDemos(gym.Wrapper):
             next_obs, _, _, _, _  = self.env.step([0,0,1,0])
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.env.render() if self.render_init else None
-            self.state_memory = self.record_demos(obs, [0,0,0.5,0], next_obs, self.state_memory, next_state, action_step="drop")
+            self.state_memory = self.record_demos(obs, [0,0,1,0], next_obs, self.state_memory, next_state, action_step="drop")
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
