@@ -72,7 +72,7 @@ def make_env(i: int, this_seed: int):
         controller_configs=controller_config,
         has_renderer=args.render,
         has_offscreen_renderer=True,
-        horizon=100000000,
+        horizon=500,
         use_camera_obs=False,
         #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
@@ -105,10 +105,11 @@ sqil_trainer = sqil.SQIL(
     rl_kwargs=dict(seed=SEED),
 )
 
-reward_before_training, _ = evaluate_policy(sqil_trainer.policy, venv, 100)
+print("Evaluation before training.")
+reward_before_training, _ = evaluate_policy(sqil_trainer.policy, venv, 1)
 print(f"Reward before training: {reward_before_training}")
 
-
+print("Launching the SQIL training.")
 sqil_trainer.train(
     total_timesteps=1000,
 )  # Note: set to 300_000 to obtain good results
