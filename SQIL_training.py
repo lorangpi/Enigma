@@ -6,7 +6,7 @@ import gymnasium as gym
 from robosuite.wrappers import GymWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
 from imitation.algorithms import sqil
-from imitation.util.util import make_seeds
+from imitation.util.util import make_seeds, save_policy
 from stable_baselines3 import sac
 from stable_baselines3.common import monitor
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -31,9 +31,7 @@ args = parser.parse_args()
 np.random.seed(args.seed)
 SEED=args.seed
 
-#path = "data/demo_seed_0/2024-04-15_19:58:45" + "/hf_traj/"
-#args.data_dir = "/home/lorangpi/Enigma/data/demo_seed_0/2024-04-16_08:14:04"
-ds = [d for d in os.listdir(args.data_dir + "/hf_traj/")]
+ds = [d for d in os.listdir(args.data_dir + "/hf_traj/")] # there's a directory d for each action "pick", "drop", "reach_drop", "reach_pick"
 demo_auto_trajectories = {}
 for d in ds:
     demo_trajectories_for_act_dataset = serialize.load(args.data_dir + "/hf_traj/" + d)
@@ -115,3 +113,11 @@ sqil_trainer.train(
 )  # Note: set to 300_000 to obtain good results
 reward_after_training, _ = evaluate_policy(sqil_trainer.policy, venv, 100)
 print(f"Reward after training: {reward_after_training}")
+
+
+# make a directory to save the trained policy
+policy_dir = os.path.join(args.experiment_dir, "policy")
+os.makedirs(policy_dir, exist_ok=True)
+# Save the trained policy
+save_policy(policy=sqil_trainer.policy, policy_path=policy_dir)
+print(f"Policy saved to {policy_dir}")
