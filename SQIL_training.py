@@ -9,6 +9,7 @@ from imitation.algorithms import sqil
 from imitation.util.util import make_seeds
 from stable_baselines3 import sac
 from stable_baselines3.common import monitor
+from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv
 from imitation.data import serialize
 from record_demos_automation import to_datestring
@@ -103,3 +104,13 @@ sqil_trainer = sqil.SQIL(
     rl_algo_class=sac.SAC,
     rl_kwargs=dict(seed=SEED),
 )
+
+reward_before_training, _ = evaluate_policy(sqil_trainer.policy, venv, 100)
+print(f"Reward before training: {reward_before_training}")
+
+
+sqil_trainer.train(
+    total_timesteps=1000,
+)  # Note: set to 300_000 to obtain good results
+reward_after_training, _ = evaluate_policy(sqil_trainer.policy, venv, 100)
+print(f"Reward after training: {reward_after_training}")
