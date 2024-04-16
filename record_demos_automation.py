@@ -256,9 +256,9 @@ class RecordDemos(gym.Wrapper):
         # Data buffer saves a tuple of (trajectory[obs, action, next_obs, done, reward], symbolic trajectory[state, "MOVE", next_state], task)
         for step in self.action_steps:
             if step not in self.data_buffer.keys():
-                self.data_buffer[step] = [[self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)]]
+                self.data_buffer[step] = [(self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop))]
             else:
-                self.data_buffer[step].append([self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)])
+                self.data_buffer[step].append((self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)))
         self.save_buffer(self.data_buffer, self.args.traces)
         obs = self.reset()
         return obs
