@@ -81,9 +81,9 @@ def prepare_data_for_dataset(trajectories):
         acts = np.array([step[1] for step in episode])
         rews = np.array([step[3] for step in episode])
         infos = np.array([{} for _ in episode])  # Assuming empty dicts for infos
-        terminal = episode[-1][4]  # The 'done' flag of the last step
-        if terminal:
-            print("an episode that reached the goal")
+        terminal = True #episode[-1][4]  # The 'done' flag of the last step
+        #if terminal:
+        #    print("an episode that reached the goal")
         traj_obj = types.TrajectoryWithRew(obs=obs, acts=acts, infos=infos, rews=rews, terminal=terminal)
         trajectory_objects.append(traj_obj)
 

@@ -1,17 +1,18 @@
 
-
-#%%
+import os, argparse, time, functools
 import numpy as np
-import os
-import argparse
 import robosuite as suite
-import time
+import gymnasium as gym
 from robosuite.wrappers import GymWrapper
+from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
 from imitation.algorithms import sqil
-from imitation.util.util import make_vec_env
+from imitation.util.util import make_seeds
 from stable_baselines3 import sac
+from stable_baselines3.common import monitor
+from stable_baselines3.common.vec_env import DummyVecEnv
 from imitation.data import serialize
-from record_demos_automation import RecordDemos, to_datestring
+from record_demos_automation import to_datestring
+from typing import (Callable, List,)
 
 # Define the command line arguments
 parser = argparse.ArgumentParser()
@@ -29,32 +30,25 @@ args = parser.parse_args()
 np.random.seed(args.seed)
 SEED=args.seed
 
-#%%
-# load data
-
 #path = "data/demo_seed_0/2024-04-15_19:58:45" + "/hf_traj/"
+#args.data_dir = "/home/lorangpi/Enigma/data/demo_seed_0/2024-04-16_08:14:04"
 ds = [d for d in os.listdir(args.data_dir + "/hf_traj/")]
 demo_auto_trajectories = {}
 for d in ds:
     demo_trajectories_for_act_dataset = serialize.load(args.data_dir + "/hf_traj/" + d)
     demo_auto_trajectories[d] = demo_trajectories_for_act_dataset
 
-#%%
-# 
+print(len(demo_trajectories_for_act_dataset[0].obs))
+print(len(demo_trajectories_for_act_dataset[0].acts))
+print(len(demo_trajectories_for_act_dataset[0].rews))
+print(demo_trajectories_for_act_dataset[0].terminal)
+
+# If the class has a `__dict__` attribute, print it to see all attributes and their values
+if hasattr(demo_trajectories_for_act_dataset, '__dict__'):
+    print(demo_trajectories_for_act_dataset.__dict__)
 # Load the controller config
 controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
-# Create the environment
-env = suite.make(
-    "Hanoi",
-    robots="Kinova3",
-    controller_configs=controller_config,
-    has_renderer=args.render,
-    has_offscreen_renderer=True,
-    horizon=100000000,
-    use_camera_obs=False,
-    #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
-    random_reset=True,
-)
+
 data_folder = args.data_folder
 experiment_name = args.experiment + '_seed_' + str(args.seed)
 experiment_id = f"{to_datestring(time.time())}"#self.hashid 
@@ -65,25 +59,45 @@ args.experiment_dir = os.path.join(data_folder, experiment_name, experiment_id)
 print("Starting experiment {}.".format(os.path.join(experiment_name, experiment_id)))
 
 # Create the directories
-args.graphs = args.experiment_dir + '/graphs_train/'
-args.pddl = args.experiment_dir + '/pddl_train/'
-args.traces = args.experiment_dir + '/traces_train/'
+args.logs = args.experiment_dir + '/logs/'
 os.makedirs(args.experiment_dir, exist_ok=True)
-os.makedirs(args.graphs, exist_ok=True)
-os.makedirs(args.pddl, exist_ok=True)
-os.makedirs(args.traces, exist_ok=True)
-# Wrap the environment
-env = GymWrapper(env)
-env = RecordDemos(env, args)
+os.makedirs(args.logs, exist_ok=True)
+
+def make_env(i: int, this_seed: int):
+    # Create the environment
+    env = suite.make(
+        "Hanoi",
+        robots="Kinova3",
+        controller_configs=controller_config,
+        has_renderer=args.render,
+        has_offscreen_renderer=True,
+        horizon=100000000,
+        use_camera_obs=False,
+        #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+        random_reset=True,
+    )
+
+    # Wrap the environment
+    env = GymWrapper(env)
+    env = PickWrapper(env)
+    env.reset(seed=int(this_seed))
+    env = monitor.Monitor(env, args.logs)
+    return env
 
 
-# %%
-# try training a 'pick' policy
-print("Observation space:", env.observation_space)
-print("Sample observation:", env.observation_space.sample())
+env = make_env(0, SEED)
+
+#Create venv
+n_envs = 1
+rng=np.random.default_rng(seed=SEED)
+env_seeds = make_seeds(rng, n_envs)
+env_fns: List[Callable[[], gym.Env]] = [
+    functools.partial(make_env, i, s) for i, s in enumerate(env_seeds)
+]
+venv = DummyVecEnv(env_fns)
 
 sqil_trainer = sqil.SQIL(
-    venv=env,
+    venv=venv,
     demonstrations=demo_auto_trajectories['pick'],
     policy="MlpPolicy",
     rl_algo_class=sac.SAC,
