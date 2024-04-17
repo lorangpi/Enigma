@@ -140,7 +140,7 @@ sqil_trainer.train(
     total_timesteps=10_000_000,
     log_interval=10,
     tb_log_name="SQIL",
-    callback=eval_callback,
+    callback=callbacks,
 )  # Note: set to 300_000 to obtain good results
 
 # Evaluate the trained policy
