@@ -1,16 +1,23 @@
 
+import warnings
+warnings.filterwarnings("ignore")
+
 import os, argparse, time, functools
 import numpy as np
 import robosuite as suite
 import gymnasium as gym
+from pathlib import Path
 from robosuite.wrappers import GymWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
 from imitation.algorithms import sqil
-from imitation.util.util import make_seeds, save_policy
+from imitation.util.util import make_seeds
+from imitation.policies.serialize import save_stable_model
 from stable_baselines3 import sac
 from stable_baselines3.common import monitor
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv
+from eval_callback import CustomEvalCallback
+from stable_baselines3.common.callbacks import CheckpointCallback
 from imitation.data import serialize
 from record_demos_automation import to_datestring
 from typing import (Callable, List,)
@@ -37,11 +44,6 @@ for d in ds:
     demo_trajectories_for_act_dataset = serialize.load(args.data_dir + "/hf_traj/" + d)
     demo_auto_trajectories[d] = demo_trajectories_for_act_dataset
 
-print(len(demo_trajectories_for_act_dataset[0].obs))
-print(len(demo_trajectories_for_act_dataset[0].acts))
-print(len(demo_trajectories_for_act_dataset[0].rews))
-print(demo_trajectories_for_act_dataset[0].terminal)
-
 # If the class has a `__dict__` attribute, print it to see all attributes and their values
 if hasattr(demo_trajectories_for_act_dataset, '__dict__'):
     print(demo_trajectories_for_act_dataset.__dict__)
@@ -59,8 +61,16 @@ print("Starting experiment {}.".format(os.path.join(experiment_name, experiment_
 
 # Create the directories
 args.logs = args.experiment_dir + '/logs/'
+args.tensorboard = args.experiment_dir + '/tensorboard/'
 os.makedirs(args.experiment_dir, exist_ok=True)
 os.makedirs(args.logs, exist_ok=True)
+os.makedirs(args.tensorboard, exist_ok=True)
+# make a directory to save the trained policy
+policy_dir = Path(os.path.join(args.experiment_dir, "policy"))
+os.makedirs(policy_dir, exist_ok=True)
+policy_name = "model.zip"
+policy_path = policy_dir / policy_name
+
 
 def make_env(i: int, this_seed: int):
     # Create the environment
@@ -84,7 +94,7 @@ def make_env(i: int, this_seed: int):
     return env
 
 
-env = make_env(0, SEED)
+env = make_env(4, SEED)
 
 #Create venv
 n_envs = 1
@@ -100,24 +110,52 @@ sqil_trainer = sqil.SQIL(
     demonstrations=demo_auto_trajectories['pick'],
     policy="MlpPolicy",
     rl_algo_class=sac.SAC,
-    rl_kwargs=dict(seed=SEED),
+    rl_kwargs=dict(seed=SEED, 
+                   verbose=1,
+                   tensorboard_log=args.tensorboard,
+                   )
 )
 
-print("Evaluation before training.")
-reward_before_training, _ = evaluate_policy(sqil_trainer.policy, venv, 1)
-print(f"Reward before training: {reward_before_training}")
+#print("Evaluation before training.")
+#reward_before_training, _ = evaluate_policy(sqil_trainer.policy, venv, 50)
+#print(f"Reward before training: {reward_before_training}")
 
+# Define the evaluation callback to evaluate the policy and save the best one each 100000 steps
+eval_env = make_env(0, SEED)
+eval_callback = CustomEvalCallback(
+    eval_env,
+    best_model_save_path=policy_dir,
+    log_path=args.experiment_dir + '/evaluations.npz',
+    eval_freq=100_000,
+    n_eval_episodes=10,
+    deterministic=True,
+    render=False,
+    verbose=1
+)
+callbacks = [eval_callback, CheckpointCallback(save_freq=100_000, save_path=policy_dir)]
+             
+# Train the policy
 print("Launching the SQIL training.")
 sqil_trainer.train(
-    total_timesteps=1000,
+    total_timesteps=10_000_000,
+    log_interval=10,
+    tb_log_name="SQIL",
+    callback=eval_callback,
 )  # Note: set to 300_000 to obtain good results
-reward_after_training, _ = evaluate_policy(sqil_trainer.policy, venv, 100)
+
+# Evaluate the trained policy
+print("Evaluation after training.")
+reward_after_training, _ = evaluate_policy(sqil_trainer.policy, venv, 50)
 print(f"Reward after training: {reward_after_training}")
 
-
-# make a directory to save the trained policy
-policy_dir = os.path.join(args.experiment_dir, "policy")
-os.makedirs(policy_dir, exist_ok=True)
 # Save the trained policy
-save_policy(policy=sqil_trainer.policy, policy_path=policy_dir)
-print(f"Policy saved to {policy_dir}")
+save_stable_model(policy_dir, sqil_trainer.rl_algo)
+print(f"Policy saved to {policy_path}")
+
+# Load the policy
+print(f"Loading the policy from {policy_path}")
+learned_model = sac.SAC.load(policy_path)
+
+# Now you can use the loaded policy
+reward_after_loading, _ = evaluate_policy(learned_model.policy, venv, 1)
+print(f"Reward after loading: {reward_after_loading}")
