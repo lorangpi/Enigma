@@ -238,3 +238,20 @@ class SQILHERReplayBuffer(buffers.HerReplayBuffer):
                 for name in new_sample._fields
             ),
         )
+    
+
+if __name__ == "__main__":
+    import datasets
+    from imitation.data import huggingface_utils
+
+    # Download some expert trajectories from the HuggingFace Datasets Hub.
+    dataset = datasets.load_dataset("HumanCompatibleAI/ppo-Pendulum-v1")
+
+    # Convert the dataset to a format usable by the imitation library.
+    expert_trajectories = huggingface_utils.TrajectoryDatasetSequence(dataset["train"])
+
+    # Transform the expert trajectories into a format usabe by HER (Hindsight Experience Replay). 
+    # In particular, transform the trajectories of (obs, act, rew, next_obs, done) into a format where obs is not an array
+    # but a dictionary with keys "observation", "achieved_goal" and "desired_goal".
+    expert_transitions = rollout.flatten_trajectories(expert_trajectories)
+    
