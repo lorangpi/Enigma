@@ -12,6 +12,7 @@ from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
 from imitation.algorithms import sqil
 from imitation.util.util import make_seeds
 from imitation.policies.serialize import save_stable_model
+from imitation.data.types import AnyPath, TrajectoryWithRew
 from stable_baselines3 import sac
 from stable_baselines3.common import monitor
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -47,6 +48,30 @@ for d in ds:
 # If the class has a `__dict__` attribute, print it to see all attributes and their values
 if hasattr(demo_trajectories_for_act_dataset, '__dict__'):
     print(demo_trajectories_for_act_dataset.__dict__)
+
+# Find indexes of the action space in the trajectories that are never used in the expert demonstrations or are always the same value
+def find_constant_indexes(action):
+    # Transpose the action array to get actions at each index
+    action_t = np.transpose(action)
+
+    # Find indexes where all values are the same or never used
+    constant_indexes = [i for i, a in enumerate(action_t) if np.all(a == a[0])]
+
+    return constant_indexes
+
+nulified_indexes = find_constant_indexes(demo_auto_trajectories['pick'][0].acts)
+print("Nulified indexes = ", nulified_indexes)
+
+# Create a new TrajectoryWithRew instance where we
+# Remove the actions slots in the demonstrations.acts that correspond to the nulified indexes
+expert_traj = TrajectoryWithRew(
+    obs=demo_auto_trajectories['pick'][0].obs,
+    acts=np.delete(demo_auto_trajectories['pick'][0].acts, nulified_indexes, axis=1),
+    rews=demo_auto_trajectories['pick'][0].rews,
+    infos=demo_auto_trajectories['pick'][0].infos,
+    terminal=demo_auto_trajectories['pick'][0].terminal
+)
+
 # Load the controller config
 controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
 
@@ -74,13 +99,14 @@ policy_path = policy_dir / policy_name
 
 def make_env(i: int, this_seed: int):
     # Create the environment
+    print("Creating environment with seed: ", this_seed)
     env = suite.make(
         "Hanoi",
         robots="Kinova3",
         controller_configs=controller_config,
         has_renderer=args.render,
         has_offscreen_renderer=True,
-        horizon=500,
+        horizon=200,
         use_camera_obs=False,
         #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
@@ -88,13 +114,10 @@ def make_env(i: int, this_seed: int):
 
     # Wrap the environment
     env = GymWrapper(env)
-    env = PickWrapper(env)
+    env = PickWrapper(env, nulified_action_indexes=nulified_indexes)
     env.reset(seed=int(this_seed))
     env = monitor.Monitor(env, args.logs)
     return env
-
-
-env = make_env(4, SEED)
 
 #Create venv
 n_envs = 1
@@ -107,7 +130,7 @@ venv = DummyVecEnv(env_fns)
 
 sqil_trainer = sqil.SQIL(
     venv=venv,
-    demonstrations=demo_auto_trajectories['pick'],
+    demonstrations=[expert_traj],
     policy="MlpPolicy",
     rl_algo_class=sac.SAC,
     rl_kwargs=dict(seed=SEED, 

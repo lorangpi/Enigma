@@ -30,7 +30,7 @@ env = suite.make(
 
 # Wrap the environment
 env = GymWrapper(env)
-env = PickWrapper(env)
+env = PickWrapper(env, nulified_action_indexes=[0,1])
 
 # Load the policy
 print(f"Loading the policy from {args.policy}")
