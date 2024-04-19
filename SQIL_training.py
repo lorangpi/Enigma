@@ -64,13 +64,13 @@ print("Nulified indexes = ", nulified_indexes)
 
 # Create a new TrajectoryWithRew instance where we
 # Remove the actions slots in the demonstrations.acts that correspond to the nulified indexes
-expert_traj = TrajectoryWithRew(
-    obs=demo_auto_trajectories['pick'][0].obs,
-    acts=np.delete(demo_auto_trajectories['pick'][0].acts, nulified_indexes, axis=1),
-    rews=demo_auto_trajectories['pick'][0].rews,
-    infos=demo_auto_trajectories['pick'][0].infos,
-    terminal=demo_auto_trajectories['pick'][0].terminal
-)
+expert_traj = [TrajectoryWithRew(
+    obs=demo.obs,
+    acts=np.delete(demo.acts, nulified_indexes, axis=1),
+    rews=demo.rews,
+    infos=demo.infos,
+    terminal=demo.terminal
+) for demo in demo_auto_trajectories['pick']]
 
 # Load the controller config
 controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
@@ -130,7 +130,7 @@ venv = DummyVecEnv(env_fns)
 
 sqil_trainer = sqil.SQIL(
     venv=venv,
-    demonstrations=[expert_traj],
+    demonstrations=expert_traj,
     policy="MlpPolicy",
     rl_algo_class=sac.SAC,
     rl_kwargs=dict(seed=SEED, 

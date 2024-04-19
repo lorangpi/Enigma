@@ -9,6 +9,7 @@ from robosuite.wrappers import GymWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
 from stable_baselines3 import sac
 from imitation.data import serialize
+from imitation.data.types import AnyPath, TrajectoryWithRew
 
 # Define the command line arguments
 parser = argparse.ArgumentParser()
@@ -40,6 +41,16 @@ def find_constant_indexes(action):
 nulified_indexes = find_constant_indexes(demo_auto_trajectories['pick'][0].acts)
 print("Nulified indexes = ", nulified_indexes)
 
+# Create a new TrajectoryWithRew instance where we
+# Remove the actions slots in the demonstrations.acts that correspond to the nulified indexes
+expert_traj = [TrajectoryWithRew(
+    obs=demo.obs,
+    acts=np.delete(demo.acts, nulified_indexes, axis=1),
+    rews=demo.rews,
+    infos=demo.infos,
+    terminal=demo.terminal
+) for demo in demo_auto_trajectories['pick']]
+
 # Load the controller config
 controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
 
@@ -69,9 +80,9 @@ for episodes in range(10):
     # Select one trajectory from the dataset demo_auto_trajectories['pick'] where demo_auto_trajectories['pick'][i].obs[-1] == obs[-1]
     traj_goal = None
     while traj_goal != obs[-1]:
-        traj = np.random.choice(demo_auto_trajectories['pick'])
+        traj = np.random.choice(expert_traj)
         traj_goal = traj.obs[0][-1]
-    
+    print("action = ", traj.acts[0])
     while not done:
         # Follow the trajectory
         action = traj.acts[step]
