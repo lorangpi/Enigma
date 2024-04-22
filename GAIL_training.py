@@ -9,7 +9,9 @@ import gymnasium as gym
 from pathlib import Path
 from robosuite.wrappers import GymWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
-from imitation.algorithms import sqil
+from imitation.algorithms.adversarial.gail import GAIL
+from imitation.rewards.reward_nets import BasicRewardNet
+from imitation.util.networks import RunningNorm
 from imitation.util.util import make_seeds
 from imitation.policies.serialize import save_stable_model
 from imitation.data.types import AnyPath, TrajectoryWithRew
@@ -18,10 +20,11 @@ from stable_baselines3.common import monitor
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv
 from eval_callback import CustomEvalCallback
-from stable_baselines3.common.callbacks import CheckpointCallback
+from stable_baselines3.common.callbacks import CheckpointCallback, BaseCallback
 from imitation.data import serialize
 from record_demos_automation import to_datestring
 from typing import (Callable, List,)
+
 
 # Define the command line arguments
 parser = argparse.ArgumentParser()
@@ -106,7 +109,7 @@ def make_env(i: int, this_seed: int):
         controller_configs=controller_config,
         has_renderer=args.render,
         has_offscreen_renderer=True,
-        horizon=300,
+        horizon=150,
         use_camera_obs=False,
         #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
@@ -114,7 +117,7 @@ def make_env(i: int, this_seed: int):
 
     # Wrap the environment
     env = GymWrapper(env)
-    env = PickWrapper(env, nulified_action_indexes=nulified_indexes, horizon=200)
+    env = PickWrapper(env, nulified_action_indexes=nulified_indexes)
     env.reset(seed=int(this_seed))
     env = monitor.Monitor(env, args.logs)
     return env
@@ -128,15 +131,23 @@ env_fns: List[Callable[[], gym.Env]] = [
 ]
 venv = DummyVecEnv(env_fns)
 
-sqil_trainer = sqil.SQIL(
-    venv=venv,
+learner = sac.SAC(env=venv, policy="MlpPolicy", verbose=1, tensorboard_log=args.tensorboard, seed=SEED)
+
+reward_net = BasicRewardNet(
+    observation_space=venv.observation_space,
+    action_space=venv.action_space,
+    normalize_input_layer=RunningNorm,
+)
+
+gail_trainer = GAIL(
     demonstrations=expert_traj,
-    policy="MlpPolicy",
-    rl_algo_class=sac.SAC,
-    rl_kwargs=dict(seed=SEED, 
-                   verbose=1,
-                   tensorboard_log=args.tensorboard,
-                   )
+    demo_batch_size=1024,
+    gen_replay_buffer_capacity=512,
+    n_disc_updates_per_round=8,
+    venv=venv,
+    gen_algo=learner,
+    reward_net=reward_net,
+    allow_variable_horizon=True,
 )
 
 #print("Evaluation before training.")
@@ -155,24 +166,23 @@ eval_callback = CustomEvalCallback(
     render=False,
     verbose=1
 )
-callbacks = [eval_callback, CheckpointCallback(save_freq=100_000, save_path=policy_dir)]
-             
+
 # Train the policy
-print("Launching the SQIL training.")
-sqil_trainer.train(
-    total_timesteps=10_000_000,
-    log_interval=10,
-    tb_log_name="SQIL",
-    callback=callbacks,
-)  # Note: set to 300_000 to obtain good results
+print("Launching the GAIL training.")
+for steps in range(10_000):
+    gail_trainer.train(
+        total_timesteps=10_000,
+    )  # Note: set to 300_000 to obtain good results
+    save_stable_model(policy_dir, learner)
+    gail_trainer.gen_algo.save(str(policy_path) + "_" + str(steps))
 
 # Evaluate the trained policy
 print("Evaluation after training.")
-reward_after_training, _ = evaluate_policy(sqil_trainer.policy, venv, 50)
+reward_after_training, _ = evaluate_policy(learner, venv, 50)
 print(f"Reward after training: {reward_after_training}")
 
 # Save the trained policy
-save_stable_model(policy_dir, sqil_trainer.rl_algo)
+save_stable_model(policy_dir, learner)
 print(f"Policy saved to {policy_path}")
 
 # Load the policy
