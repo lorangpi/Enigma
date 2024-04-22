@@ -277,10 +277,12 @@ class RecordDemos(gym.Wrapper):
         else:
             if "pick" in action_step:
                 goal = self.goal_mapping[self.obj_to_pick]
+                goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
             if "drop" in action_step:
                 goal = self.goal_mapping[self.place_to_drop]
+                goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]][:3]
             # replace goal with the object's array of x, y, z location
-            goal_location = self.env.sim.data.body_xpos[goal]
+            
             obs = np.concatenate((obs, goal_location))
             next_obs = np.concatenate((next_obs, goal_location))
         if action_step not in self.action_steps:

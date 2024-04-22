@@ -45,6 +45,7 @@ for d in ds:
     demo_trajectories_for_act_dataset = serialize.load(args.data_dir + "/hf_traj/" + d)
     demo_auto_trajectories[d] = demo_trajectories_for_act_dataset
 
+#print("Observations: ", demo_auto_trajectories['pick'][0].obs)
 # If the class has a `__dict__` attribute, print it to see all attributes and their values
 if hasattr(demo_trajectories_for_act_dataset, '__dict__'):
     print(demo_trajectories_for_act_dataset.__dict__)
@@ -135,7 +136,9 @@ sqil_trainer = sqil.SQIL(
     rl_algo_class=sac.SAC,
     rl_kwargs=dict(seed=SEED, 
                    verbose=1,
+                   #learning_rate=1e-3,
                    tensorboard_log=args.tensorboard,
+                   policy_kwargs=dict(net_arch=[128, 256, 64]),
                    )
 )
 
