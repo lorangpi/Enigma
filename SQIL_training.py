@@ -42,7 +42,7 @@ parser.add_argument('--render', action='store_true', help='Render the initial st
 parser.add_argument('-lr', '--learning_rate', type=float, default=3e-3, help='Learning rate')
 parser.add_argument('-steps', '--total_timesteps', type=int, default=100_000, help='Total timesteps')
 parser.add_argument('-save', '--save_interval', type=int, default=5_000, help='Save interval')
-parser.add_argument('-action', type=str, default='hanoi', help='Possible action step to train reach_pick, pick, reach_drop, drop')
+parser.add_argument('-action', type=str, default='trace', help='Possible action step to train reach_pick, pick, reach_drop, drop')
 parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
 parser.add_argument('-off_rl', '--off_rl', action='store_true', help='Use Off-Policy RL')
 args = parser.parse_args()
@@ -76,7 +76,7 @@ def find_constant_indexes(action):
 
     return constant_indexes
 
-nulified_indexes = find_constant_indexes(demo_auto_trajectories['pick'][0].acts)
+nulified_indexes = find_constant_indexes(demo_auto_trajectories[args.action][0].acts)
 print("Nulified indexes = ", nulified_indexes)
 
 # Create a new TrajectoryWithRew instance where we
@@ -87,7 +87,7 @@ expert_traj = [TrajectoryWithRew(
     rews=demo.rews,
     infos=demo.infos,
     terminal=demo.terminal
-) for demo in demo_auto_trajectories['pick']]
+) for demo in demo_auto_trajectories[args.action]]
 
 # Load the controller config
 controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
@@ -182,7 +182,7 @@ sqil_trainer = sqil_alg(
     rl_algo_class=sac.SAC,
     rl_kwargs=dict(seed=SEED, 
                    verbose=1,
-                   learning_rate=linear_schedule(8e-3, 1e-4), #3e-3,
+                   learning_rate=linear_schedule(3.5e-3, 1e-4), #3e-3,
                    tensorboard_log=args.tensorboard,
                    policy_kwargs=dict(net_arch=[128, 256, 64]),
                    #policy_kwargs=dict(net_arch=[128, 256, 32]),
