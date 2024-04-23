@@ -44,6 +44,7 @@ parser.add_argument('-steps', '--total_timesteps', type=int, default=100_000, he
 parser.add_argument('-save', '--save_interval', type=int, default=5_000, help='Save interval')
 parser.add_argument('-action', type=str, default='hanoi', help='Possible action step to train reach_pick, pick, reach_drop, drop')
 parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
+parser.add_argument('-off_rl', '--off_rl', action='store_true', help='Use Off-Policy RL')
 args = parser.parse_args()
 # Set the random seed
 np.random.seed(args.seed)
@@ -168,8 +169,13 @@ def linear_schedule(initial_value: float, final_value: float) -> Callable[[float
     return func
 
 # Create the SQIL trainer
-#sqil_trainer = Off_SQIL(
-sqil_trainer = sqil.SQIL(
+if args.off_rl:
+    print("Using Off-Policy RL.")
+    sqil_alg = Off_SQIL
+else:
+    print("Using On-Policy RL.")
+    sqil_alg = sqil.SQIL
+sqil_trainer = sqil_alg(
     venv=venv,
     demonstrations=expert_traj,
     policy="MlpPolicy",
