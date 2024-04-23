@@ -285,13 +285,14 @@ class RecordDemos(gym.Wrapper):
             
             obs = np.concatenate((obs, goal_location))
             next_obs = np.concatenate((next_obs, goal_location))
+        if action_step == "reach_pick":
+            print(obs)
         if action_step not in self.action_steps:
             self.action_steps.append(action_step)
         if action_step not in self.episode_buffer.keys():
             self.episode_buffer[action_step] = [(obs, action, next_obs, reward, done)]
         else:
             self.episode_buffer[action_step].append((obs, action, next_obs, reward, done))
-
         #print("Memory: {}".format(self.state_memory['on(cube1,cube2)']))
         state = copy.deepcopy(state_memory)
         if new_state != state:

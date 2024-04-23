@@ -9,6 +9,9 @@ import gymnasium as gym
 from pathlib import Path
 from robosuite.wrappers import GymWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
+from robosuite.wrappers.behavior_cloning.hanoi_drop import DropWrapper
+from robosuite.wrappers.behavior_cloning.hanoi_reach_pick import ReachPickWrapper
+from robosuite.wrappers.behavior_cloning.hanoi_reach_drop import ReachDropWrapper
 from imitation.algorithms import sqil
 from imitation.util.util import make_seeds
 from imitation.policies.serialize import save_stable_model
@@ -22,18 +25,25 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from imitation.data import serialize
 from record_demos_automation import to_datestring
 from typing import (Callable, List,)
+from bc.off_sqil import Off_SQIL
+
+env_map = {'pick': PickWrapper, 'drop': DropWrapper, 'reach_pick': ReachPickWrapper, 'reach_drop': ReachDropWrapper}
+env_horizon = {'pick': 70, 'drop': 50, 'reach_pick': 200, 'reach_drop': 200}
 
 # Define the command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiment', type=str, default='demo', choices=['demo'], 
                     help='Name of the experiment. Used to name the log and model directories. Augmented means that the observations are augmented with the detector observation.')
+parser.add_argument('--data_dir', type=str, default='data/', help='Data Directory')
 parser.add_argument('--data_folder', type=str, default='./data/', help='Path to the data folder')
 parser.add_argument('--episodes', type=int, default=int(200), help='Number of episodes to train for')
 parser.add_argument('--seed', type=int, default=0, help='Random seed')
-parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
 parser.add_argument('--render', action='store_true', help='Render the initial state')
-parser.add_argument('--split_action', action='store_true', help='Split the MOVE action into reach_pick, pick, reach_drop, drop')
-parser.add_argument('--data_dir', type=str, default='data/', help='Data Directory')
+parser.add_argument('-lr', '--learning_rate', type=float, default=3e-3, help='Learning rate')
+parser.add_argument('-steps', '--total_timesteps', type=int, default=100_000, help='Total timesteps')
+parser.add_argument('-save', '--save_interval', type=int, default=5_000, help='Save interval')
+parser.add_argument('-action', type=str, default='hanoi', help='Possible action step to train reach_pick, pick, reach_drop, drop')
+parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
 args = parser.parse_args()
 # Set the random seed
 np.random.seed(args.seed)
@@ -45,10 +55,15 @@ for d in ds:
     demo_trajectories_for_act_dataset = serialize.load(args.data_dir + "/hf_traj/" + d)
     demo_auto_trajectories[d] = demo_trajectories_for_act_dataset
 
-#print("Observations: ", demo_auto_trajectories['pick'][0].obs)
+#print("Observations: ", demo_auto_trajectories['pick'][-1].obs)
+#print("Actions: ", demo_auto_trajectories['pick'][-1].acts)
 # If the class has a `__dict__` attribute, print it to see all attributes and their values
 if hasattr(demo_trajectories_for_act_dataset, '__dict__'):
     print(demo_trajectories_for_act_dataset.__dict__)
+
+#Find the average length of the demonstrations
+demo_lengths = [len(demo.acts) for demo in demo_auto_trajectories['pick']]
+print("Average length of demonstrations: ", np.mean(demo_lengths))
 
 # Find indexes of the action space in the trajectories that are never used in the expert demonstrations or are always the same value
 def find_constant_indexes(action):
@@ -81,6 +96,8 @@ experiment_name = args.experiment + '_seed_' + str(args.seed)
 experiment_id = f"{to_datestring(time.time())}"#self.hashid 
 if args.name is not None:
     experiment_id = args.name
+if args.action is not None:
+    experiment_id = experiment_id + "_" + args.action
 args.experiment_dir = os.path.join(data_folder, experiment_name, experiment_id)
 
 print("Starting experiment {}.".format(os.path.join(experiment_name, experiment_id)))
@@ -115,7 +132,8 @@ def make_env(i: int, this_seed: int):
 
     # Wrap the environment
     env = GymWrapper(env)
-    env = PickWrapper(env, nulified_action_indexes=nulified_indexes, horizon=200)
+    if args.action in env_map:
+        env = env_map[args.action](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[args.action])
     env.reset(seed=int(this_seed))
     env = monitor.Monitor(env, args.logs)
     return env
@@ -129,6 +147,28 @@ env_fns: List[Callable[[], gym.Env]] = [
 ]
 venv = DummyVecEnv(env_fns)
 
+# Linear schedule for the learning rate
+def linear_schedule(initial_value: float, final_value: float) -> Callable[[float], float]:
+    """
+    Linear learning rate schedule.
+
+    :param initial_value: Initial learning rate.
+    :return: schedule that computes
+      current learning rate depending on remaining progress
+    """
+    def func(progress_remaining: float) -> float:
+        """
+        Progress will decrease from 1 (beginning) to 0.
+
+        :param progress_remaining:
+        :return: current learning rate
+        """
+        return progress_remaining * initial_value + (1 - progress_remaining) * final_value
+
+    return func
+
+# Create the SQIL trainer
+#sqil_trainer = Off_SQIL(
 sqil_trainer = sqil.SQIL(
     venv=venv,
     demonstrations=expert_traj,
@@ -136,9 +176,10 @@ sqil_trainer = sqil.SQIL(
     rl_algo_class=sac.SAC,
     rl_kwargs=dict(seed=SEED, 
                    verbose=1,
-                   #learning_rate=1e-3,
+                   learning_rate=linear_schedule(8e-3, 1e-4), #3e-3,
                    tensorboard_log=args.tensorboard,
                    policy_kwargs=dict(net_arch=[128, 256, 64]),
+                   #policy_kwargs=dict(net_arch=[128, 256, 32]),
                    )
 )
 
@@ -152,18 +193,18 @@ eval_callback = CustomEvalCallback(
     eval_env,
     best_model_save_path=policy_dir,
     log_path=args.experiment_dir + '/evaluations.npz',
-    eval_freq=100_000,
+    eval_freq=args.save_interval,
     n_eval_episodes=10,
     deterministic=True,
     render=False,
     verbose=1
 )
-callbacks = [eval_callback, CheckpointCallback(save_freq=100_000, save_path=policy_dir)]
+callbacks = [eval_callback, CheckpointCallback(save_freq=args.save_interval, save_path=policy_dir)]
              
 # Train the policy
 print("Launching the SQIL training.")
 sqil_trainer.train(
-    total_timesteps=10_000_000,
+    total_timesteps=args.total_timesteps,
     log_interval=10,
     tb_log_name="SQIL",
     callback=callbacks,
