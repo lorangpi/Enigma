@@ -124,7 +124,7 @@ def make_env(i: int, this_seed: int):
         controller_configs=controller_config,
         has_renderer=args.render,
         has_offscreen_renderer=True,
-        horizon=300,
+        horizon=500,
         use_camera_obs=False,
         #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
