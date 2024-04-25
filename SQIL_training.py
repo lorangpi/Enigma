@@ -40,7 +40,7 @@ parser.add_argument('--episodes', type=int, default=int(200), help='Number of ep
 parser.add_argument('--seed', type=int, default=0, help='Random seed')
 parser.add_argument('--render', action='store_true', help='Render the initial state')
 parser.add_argument('-lr', '--learning_rate', type=float, default=3e-3, help='Learning rate')
-parser.add_argument('-steps', '--total_timesteps', type=int, default=100_000, help='Total timesteps')
+parser.add_argument('-steps', '--total_timesteps', type=int, default=500_000, help='Total timesteps')
 parser.add_argument('-save', '--save_interval', type=int, default=5_000, help='Save interval')
 parser.add_argument('-action', type=str, default='trace', help='Possible action step to train reach_pick, pick, reach_drop, drop')
 parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
@@ -125,7 +125,7 @@ def make_env(i: int, this_seed: int):
         controller_configs=controller_config,
         has_renderer=args.render,
         has_offscreen_renderer=True,
-        horizon=500,
+        horizon=1000,
         use_camera_obs=False,
         #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
@@ -182,7 +182,7 @@ sqil_trainer = sqil_alg(
     rl_algo_class=sac.SAC,
     rl_kwargs=dict(seed=SEED, 
                    verbose=1,
-                   learning_rate=linear_schedule(3.5e-3, 1e-4), #3e-3,
+                   learning_rate=linear_schedule(2e-3, 5e-4), #3e-3,
                    tensorboard_log=args.tensorboard,
                    policy_kwargs=dict(net_arch=[128, 256, 64]),
                    #policy_kwargs=dict(net_arch=[128, 256, 32]),
@@ -200,7 +200,7 @@ eval_callback = CustomEvalCallback(
     best_model_save_path=policy_dir,
     log_path=args.experiment_dir + '/evaluations.npz',
     eval_freq=args.save_interval,
-    n_eval_episodes=10,
+    n_eval_episodes=20,
     deterministic=True,
     render=False,
     verbose=1

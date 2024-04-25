@@ -7,9 +7,10 @@
 (p3 ?obj1 ?obj2 - obj) ; static ?obj1 > ?obj2
 )
 
-(:action MOVE ; Move ?obj2 from ?obj0 to ?obj1 [ Hence, ?obj2 must be smaller than ?obj1 ]
+(:action MOVE ; Move ?obj1 from ?obj2 to ?obj0
 :parameters (?obj0 ?obj1 ?obj2 - obj)
 :precondition (and 
+(p3 ?obj0 ?obj1)
 (p1 ?obj0 ?obj0)
 (p1 ?obj1 ?obj1)
 (p1 ?obj1 ?obj2)
