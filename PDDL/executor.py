@@ -42,10 +42,15 @@ class Executor_RL(Executor):
         horizon = self.horizon if self.horizon is not None else 500
         dummy_env = self.wrapper(env, nulified_action_indexes=self.nulified_action_indexes, horizon=horizon) if self.wrapper is not None else env
         print("\tLoading policy {}".format(self.policy))
+        print("Number of nulified indexes: ", len(self.nulified_action_indexes))
+        print("Action space: ", dummy_env.action_space)
         if self.model is None:
             self.model = self.alg.load(self.policy, 
                                        env=dummy_env,
-                                       custom_objects={'observation_space': dummy_env.observation_space, 'action_space': dummy_env.action_space})
+                                       custom_objects={'observation_space': dummy_env.observation_space, 
+                                                       'action_space': dummy_env.action_space,
+                                                       #'replay_buffer_class': None,
+                                                       })
         step_executor = 0
         done = False
         success = False
