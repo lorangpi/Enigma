@@ -5,6 +5,7 @@
 # This files implements the structure of the executor object used in this paper.
 
 '''
+import copy
 import numpy as np
 from stable_baselines3 import SAC
 from stable_baselines3.common.utils import set_random_seed
@@ -41,9 +42,10 @@ class Executor_RL(Executor):
         '''
         horizon = self.horizon if self.horizon is not None else 500
         dummy_env = self.wrapper(env, nulified_action_indexes=self.nulified_action_indexes, horizon=horizon) if self.wrapper is not None else env
+        print("\tTask goal: ", symgoal)
         print("\tLoading policy {}".format(self.policy))
-        print("Number of nulified indexes: ", len(self.nulified_action_indexes))
-        print("Action space: ", dummy_env.action_space)
+        print("\tNumber of nulified indexes: ", len(self.nulified_action_indexes))
+        print("\tAction space: ", dummy_env.action_space)
         if self.model is None:
             self.model = self.alg.load(self.policy, 
                                        env=dummy_env,
@@ -56,7 +58,12 @@ class Executor_RL(Executor):
         success = False
         while not done:
             if goal is not None:
-                obs = np.concatenate((obs, goal))
+                #print("\tLow level goal: ", goal)
+                #goal_copy = copy.deepcopy(goal)
+                goal_copy = np.copy(goal)
+                obs = np.concatenate((obs, goal_copy))
+                #print("\tObservation shape: ", obs.shape)
+                #print("\tObservation: ", obs)
             action, _states = self.model.predict(obs)
             # if self.nulified_action_indexes is not empty, fill the action with zeros at the indexes
             if self.nulified_action_indexes:
@@ -64,11 +71,15 @@ class Executor_RL(Executor):
                     action = np.insert(action, index, 0)
             try: 
                 obs, reward, terminated, truncated, info = env.step(action)
+                #print(obs.shape)
                 done = terminated or truncated
             except:
                 obs, reward, done, info = env.step(action)
             step_executor += 1
             success = self.Beta(env, symgoal)
+            if success:
+                print("\tSuccess: Task completed in {} steps\n".format(step_executor))
+                break
             done = success
             if step_executor > 500:
                 done = True

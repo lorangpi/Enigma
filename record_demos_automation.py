@@ -28,7 +28,6 @@ class RecordDemos(gym.Wrapper):
         self.peg1_body = self.env.sim.model.body_name2id('peg1_main')
         self.peg2_body = self.env.sim.model.body_name2id('peg2_main')
         self.peg3_body = self.env.sim.model.body_name2id('peg3_main')
-        self.obj_mapping = {'cube1': self.cube1_body, 'cube2': self.cube2_body, 'cube3': self.cube3_body, 'peg1': self.peg1_body, 'peg2': self.peg2_body, 'peg3': self.peg3_body}
         self.gripper_body = self.env.sim.model.body_name2id('gripper0_eef')
         self.obj_to_pick = 'cube1_main'
         self.place_to_drop = 'cube2_main'
@@ -36,9 +35,11 @@ class RecordDemos(gym.Wrapper):
 
         # Environment parameters
         self.goal_mapping = {'cube1': 0, 'cube2': 1, 'cube3': 2, 'peg1': 3, 'peg2': 4, 'peg3': 5}
+        self.obj_mapping = {'cube1': self.cube1_body, 'cube2': self.cube2_body, 'cube3': self.cube3_body, 'peg1': self.peg1_body, 'peg2': self.peg2_body, 'peg3': self.peg3_body}
+        self.area_pos = {'peg1': self.env.pegs_xy_center[0], 'peg2': self.env.pegs_xy_center[1], 'peg3': self.env.pegs_xy_center[2]}
+
         self.ray_bins = {'peg': 0.15}
         self.detector = Robosuite_Hanoi_Detector(self)
-        self.area_pos = {'peg1': self.pegs_xy_center[0], 'peg2': self.pegs_xy_center[1], 'peg3': self.pegs_xy_center[2]}
         self.render_init = args.render
         self.max_distance = 10
         self.gripper_on = True
@@ -280,13 +281,14 @@ class RecordDemos(gym.Wrapper):
                 goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
             if "drop" in action_step:
                 goal = self.goal_mapping[self.place_to_drop]
-                goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]][:3]
+                if 'cube' in self.place_to_drop:
+                    goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]][:3]
+                else:
+                    goal_location = self.area_pos[self.place_to_drop][:3]
             # replace goal with the object's array of x, y, z location
             
             obs = np.concatenate((obs, goal_location))
             next_obs = np.concatenate((next_obs, goal_location))
-        if action_step == "reach_pick":
-            print(obs)
         if action_step not in self.action_steps:
             self.action_steps.append(action_step)
         if action_step not in self.episode_buffer.keys():

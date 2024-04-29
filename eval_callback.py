@@ -85,6 +85,7 @@ class CustomEvalCallback(EvalCallback):
                 if self.verbose > 0:
                     print("New best mean reward!")
                 if self.best_model_save_path is not None:
+                    self.model.save(os.path.join(self.best_model_save_path, "best_model"))
                     # Save the best mean reward and the current step as a .csv file
                     with open(os.path.join(self.best_model_save_path, 'best_results_eval.csv'), 'w') as f:
                         f.write("step,mean_reward,success_rate,mean_ep_length\n")

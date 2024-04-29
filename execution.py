@@ -44,6 +44,7 @@ def termination_indicator(operator):
             detector = Robosuite_Hanoi_Detector(env)
             state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             condition = state[f"over(gripper,{symgoal})"]
+            return condition
     return Beta
 
 
@@ -58,7 +59,7 @@ env = suite.make(
     has_offscreen_renderer=True,
     horizon=5000,
     use_camera_obs=False,
-    render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+    render_camera="frontview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
     random_reset=False,
 )
 
@@ -76,7 +77,7 @@ reach_pick = Executor_RL(id='ReachPick',
                          horizon=200)
 pick = Executor_RL(id='Pick', 
                    alg=sac.SAC, 
-                   policy="/home/lorangpi/Enigma/data/demo_seed_4/2024-04-26_11:02:20_pick/policy/best_model.zip", 
+                   policy="/home/lorangpi/Enigma/data/demo_seed_6/2024-04-26_22:44:03_pick/policy/rl_model_85000_steps.zip", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[0,1],
@@ -84,7 +85,7 @@ pick = Executor_RL(id='Pick',
                    horizon=70)
 reach_drop = Executor_RL(id='ReachDrop', 
                          alg=sac.SAC, 
-                         policy="/home/lorangpi/Enigma/data/demo_seed_4/2024-04-26_11:01:53_reach_drop/policy/best_model.zip", 
+                         policy="/home/lorangpi/Enigma/data/demo_seed_4/2024-04-28_00:01:08_reach_drop/policy/best_model.zip", 
                          I={}, 
                          Beta=termination_indicator('reach_drop'),
                          nulified_action_indexes=[3],
@@ -121,6 +122,7 @@ obj_body_mapping = {
     'o5': peg3_body
 }
 obj_mapping = {'o1': 'cube1', 'o2': 'cube2', 'o6': 'cube3', 'o3': 'peg1', 'o4': 'peg2', 'o5': 'peg3'}
+area_pos = {'peg1': env.pegs_xy_center[0], 'peg2': env.pegs_xy_center[1], 'peg3': env.pegs_xy_center[2]}
 
 # Evaluate the agent
 done = False
@@ -135,7 +137,10 @@ for operator in plan:
     obj_to_drop = operator.split(' ')[1].lower()
     print("Picking object: {}, Dropping object: {}".format(obj_to_pick, obj_to_drop))
     pick_loc = env.sim.data.body_xpos[obj_body_mapping[obj_to_pick]][:3]
-    drop_loc = env.sim.data.body_xpos[obj_body_mapping[obj_to_drop]][:3]
+    if 'peg' in obj_mapping[obj_to_drop]:
+        drop_loc = area_pos[obj_mapping[obj_to_drop]]
+    else:
+        drop_loc = env.sim.data.body_xpos[obj_body_mapping[obj_to_drop]][:3]
     for action_step in Move_action:
         print("\tExecuting action: ", action_step.id)
         if 'Pick' in action_step.id:
