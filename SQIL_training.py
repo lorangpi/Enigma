@@ -12,7 +12,6 @@ from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_drop import DropWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_reach_pick import ReachPickWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_reach_drop import ReachDropWrapper
-from robosuite.wrappers.behavior_cloning.reset_with_action_policies import PoliciesResetWrapper
 from imitation.algorithms import sqil
 from imitation.util.util import make_seeds
 from imitation.policies.serialize import save_stable_model
@@ -138,7 +137,6 @@ def make_env(i: int, this_seed: int):
     env = GymWrapper(env)
     if args.action in env_map:
         env = env_map[args.action](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[args.action])
-        env = PoliciesResetWrapper(env=env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[args.action], prev_action_policies=prev_action_policies_executors[args.action])
     env.reset(seed=int(this_seed))
     env = monitor.Monitor(env, args.logs)
     return env
