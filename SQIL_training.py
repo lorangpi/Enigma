@@ -182,7 +182,7 @@ sqil_trainer = sqil_alg(
     rl_algo_class=sac.SAC,
     rl_kwargs=dict(seed=SEED, 
                    verbose=1,
-                   learning_rate=linear_schedule(3e-3, 1e-4),#linear_schedule(4e-4, 7e-5),#linear_schedule(7e-4, 2e-4),#linear_schedule(2e-3, 5e-4), #3e-3,
+                   learning_rate=linear_schedule(4e-4, 7e-5),#linear_schedule(3e-3, 1e-4),##linear_schedule(7e-4, 2e-4),#linear_schedule(2e-3, 5e-4), #3e-3,
                    tensorboard_log=args.tensorboard,
                    policy_kwargs=dict(net_arch=[128, 256, 64]),
                    #policy_kwargs=dict(net_arch=[128, 256, 32]),

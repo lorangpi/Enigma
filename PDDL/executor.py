@@ -65,10 +65,12 @@ class Executor_RL(Executor):
                 #print("\tObservation shape: ", obs.shape)
                 #print("\tObservation: ", obs)
             action, _states = self.model.predict(obs)
+            #print("Input action: ", action)
             # if self.nulified_action_indexes is not empty, fill the action with zeros at the indexes
             if self.nulified_action_indexes:
                 for index in self.nulified_action_indexes:
                     action = np.insert(action, index, 0)
+            #print("Transformed action: ", action)        
             try: 
                 obs, reward, terminated, truncated, info = env.step(action)
                 #print(obs.shape)

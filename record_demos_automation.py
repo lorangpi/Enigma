@@ -5,7 +5,7 @@ from robosuite.wrappers import GymWrapper
 from datetime import datetime
 import gymnasium as gym
 import numpy as np
-from detector import Robosuite_Hanoi_Detector
+from robosuite.src.robosuite.wrappers.behavior_cloning.detector import Robosuite_Hanoi_Detector
 from graph_learner import GraphLearner
 
 def to_datestring(unixtime: int, format='%Y-%m-%d_%H:%M:%S'):
@@ -286,15 +286,20 @@ class RecordDemos(gym.Wrapper):
                 else:
                     goal_location = self.area_pos[self.place_to_drop][:3]
             # replace goal with the object's array of x, y, z location
-            
             obs = np.concatenate((obs, goal_location))
             next_obs = np.concatenate((next_obs, goal_location))
+        if self.args.goal_env:
+            desired_goal = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
+            achieved_goal = self.env.sim.data.body_xpos[self.gripper_body][:3]
+            transition = (obs, action, next_obs, reward, done, desired_goal, achieved_goal)
+        else:
+            transition = (obs, action, next_obs, reward, done)
         if action_step not in self.action_steps:
             self.action_steps.append(action_step)
         if action_step not in self.episode_buffer.keys():
-            self.episode_buffer[action_step] = [(obs, action, next_obs, reward, done)]
+            self.episode_buffer[action_step] = [transition]
         else:
-            self.episode_buffer[action_step].append((obs, action, next_obs, reward, done))
+            self.episode_buffer[action_step].append(transition)
         #print("Memory: {}".format(self.state_memory['on(cube1,cube2)']))
         state = copy.deepcopy(state_memory)
         if new_state != state:
@@ -390,6 +395,7 @@ if __name__ == "__main__":
     parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
     parser.add_argument('--render', action='store_true', help='Render the initial state')
     parser.add_argument('--split_action', action='store_true', help='Split the MOVE action into reach_pick, pick, reach_drop, drop')
+    parser.add_argument('--goal_env', action='store_true', help='Use the goal environment')
 
     args = parser.parse_args()
     # Set the random seed
