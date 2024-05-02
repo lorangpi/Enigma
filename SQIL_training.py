@@ -31,7 +31,7 @@ from execution import *
 
 env_map = {'pick': PickWrapper, 'drop': DropWrapper, 'reach_pick': ReachPickWrapper, 'reach_drop': ReachDropWrapper}
 env_horizon = {'pick': 70, 'drop': 50, 'reach_pick': 200, 'reach_drop': 200}
-prev_action_policies_executors = {'pick':[reach_pick], 'drop':[reach_pick, pick, reach_drop], 'reach_pick':[], 'reach_drop':[reach_pick, pick]}
+prev_action_policies_executors = {'pick':[reach_pick], 'reach_drop':[reach_pick, pick], 'drop':[reach_pick, pick, reach_drop], 'reach_pick':[reach_pick, pick, reach_drop, drop]}
 
 # Define the command line arguments
 parser = argparse.ArgumentParser()
