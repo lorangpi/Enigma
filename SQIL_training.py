@@ -13,6 +13,7 @@ from robosuite.wrappers.behavior_cloning.hanoi_drop import DropWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_reach_pick import ReachPickWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_reach_drop import ReachDropWrapper
 from robosuite.wrappers.behavior_cloning.reset_with_action_policies import PoliciesResetWrapper
+from detector import Robosuite_Hanoi_Detector
 from imitation.algorithms import sqil
 from imitation.util.util import make_seeds
 from imitation.policies.serialize import save_stable_model
@@ -27,7 +28,69 @@ from imitation.data import serialize
 from record_demos_automation import to_datestring
 from typing import (Callable, List,)
 from bc.off_sqil import Off_SQIL
-from execution import *
+from PDDL.executor import *
+
+def termination_indicator(operator):
+    if operator == 'pick':
+        def Beta(env, symgoal):
+            detector = Robosuite_Hanoi_Detector(env)
+            state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+            condition = state[f"grasped({symgoal})"]
+            return condition
+    elif operator == 'drop':
+        def Beta(env, symgoal):
+            detector = Robosuite_Hanoi_Detector(env)
+            state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+            condition = state[f"on({symgoal[0]},{symgoal[1]})"]
+            return condition
+    elif operator == 'reach_pick':
+        def Beta(env, symgoal):
+            detector = Robosuite_Hanoi_Detector(env)
+            state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+            condition = state[f"over(gripper,{symgoal})"]
+            return condition
+    elif operator == 'reach_drop':
+        def Beta(env, symgoal):
+            detector = Robosuite_Hanoi_Detector(env)
+            state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+            condition = state[f"over(gripper,{symgoal})"]
+            return condition
+    return Beta
+
+# Load executors
+reach_pick = Executor_RL(id='ReachPick', 
+                         alg=sac.SAC, 
+                         policy="./data/demo_seed_4/2024-04-26_11:01:51_reach_pick/policy/best_model.zip", 
+                         I={}, 
+                         Beta=termination_indicator('reach_pick'),
+                         nulified_action_indexes=[3],
+                         wrapper = ReachPickWrapper,
+                         horizon=200)
+pick = Executor_RL(id='Pick', 
+                   alg=sac.SAC, 
+                   policy="./data/demo_seed_4/2024-04-26_22:41:44_pick/policy/best_model.zip", 
+                   I={}, 
+                   Beta=termination_indicator('pick'),
+                   nulified_action_indexes=[0,1],
+                   wrapper = PickWrapper,
+                   horizon=70)
+reach_drop = Executor_RL(id='ReachDrop', 
+                         alg=sac.SAC, 
+                         policy="./data/demo_seed_4/2024-04-28_00:01:08_reach_drop/policy/best_model.zip", 
+                         I={}, 
+                         Beta=termination_indicator('reach_drop'),
+                         nulified_action_indexes=[3],
+                         wrapper = ReachDropWrapper,
+                         horizon=200)
+drop = Executor_RL(id='Drop', 
+                   alg=sac.SAC, 
+                   policy="./data/demo_seed_4/2024-04-26_11:02:36_drop/policy/best_model.zip", 
+                   I={}, 
+                   Beta=termination_indicator('drop'),
+                   nulified_action_indexes=[0,1],
+                   wrapper = DropWrapper,
+                   horizon=50)
+
 
 env_map = {'pick': PickWrapper, 'drop': DropWrapper, 'reach_pick': ReachPickWrapper, 'reach_drop': ReachDropWrapper}
 env_horizon = {'pick': 70, 'drop': 50, 'reach_pick': 200, 'reach_drop': 200}
@@ -59,8 +122,7 @@ for d in ds:
     demo_trajectories_for_act_dataset = serialize.load(args.data_dir + "/hf_traj/" + d)
     demo_auto_trajectories[d] = demo_trajectories_for_act_dataset
 
-#print("Observations: ", demo_auto_trajectories['pick'][-1].obs)
-#print("Actions: ", demo_auto_trajectories['pick'][-1].acts)
+
 # If the class has a `__dict__` attribute, print it to see all attributes and their values
 if hasattr(demo_trajectories_for_act_dataset, '__dict__'):
     print(demo_trajectories_for_act_dataset.__dict__)
@@ -117,6 +179,7 @@ policy_dir = Path(os.path.join(args.experiment_dir, "policy"))
 os.makedirs(policy_dir, exist_ok=True)
 policy_name = "model.zip"
 policy_path = policy_dir / policy_name
+
 
 
 def make_env(i: int, this_seed: int):
