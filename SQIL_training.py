@@ -282,6 +282,7 @@ sqil_trainer.train(
     log_interval=10,
     tb_log_name="SQIL",
     callback=callbacks,
+    progress_bar=True
 )  # Note: set to 300_000 to obtain good results
 
 # Evaluate the trained policy
