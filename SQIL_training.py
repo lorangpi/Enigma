@@ -94,7 +94,7 @@ drop = Executor_RL(id='Drop',
 
 env_map = {'pick': PickWrapper, 'drop': DropWrapper, 'reach_pick': ReachPickWrapper, 'reach_drop': ReachDropWrapper}
 env_horizon = {'pick': 70, 'drop': 50, 'reach_pick': 200, 'reach_drop': 200}
-prev_action_policies_executors = {'pick':[reach_pick], 'reach_drop':[reach_pick, pick], 'drop':[reach_pick, pick, reach_drop], 'reach_pick':[reach_pick, pick, reach_drop, drop]}
+prev_action_policies_executors = {'pick':[reach_drop], 'reach_drop':[reach_pick, pick], 'drop':[reach_pick, pick, reach_drop], 'reach_pick':[reach_pick, pick, reach_drop, drop]}
 
 # Define the command line arguments
 parser = argparse.ArgumentParser()
@@ -201,7 +201,7 @@ def make_env(i: int, this_seed: int):
     env = GymWrapper(env)
     if args.action in env_map:
         env = env_map[args.action](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[args.action])
-        env = PoliciesResetWrapper(env=env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[args.action], prev_action_policies=prev_action_policies_executors[args.action])
+        env = PoliciesResetWrapper(env=env, prev_action_policies=prev_action_policies_executors[args.action])
     env.reset(seed=int(this_seed))
     env = monitor.Monitor(env, args.logs)
     return env
