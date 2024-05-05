@@ -200,8 +200,7 @@ def make_env(i: int, this_seed: int):
     # Wrap the environment
     env = GymWrapper(env)
     if args.action in env_map:
-        env = env_map[args.action](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[args.action])
-        env = PoliciesResetWrapper(env=env, prev_action_policies=prev_action_policies_executors[args.action])
+        env = env_map[args.action](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[args.action], prev_action_policies=prev_action_policies_executors[args.action])
     env.reset(seed=int(this_seed))
     env = monitor.Monitor(env, args.logs)
     return env
