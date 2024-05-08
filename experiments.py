@@ -59,7 +59,7 @@ env = suite.make(
     controller_configs=controller_config,
     has_renderer=True,
     has_offscreen_renderer=True,
-    horizon=1000,
+    horizon=100000,
     use_camera_obs=False,
     #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
     random_reset=True,
@@ -189,20 +189,23 @@ for i in range(100):
     print("Episode: ", i)
     success = False
     valid_state = False
-    while not valid_state:
-        # Reset the environment
-        try:
-            obs, _ = env.reset()
-        except Exception as e:
-            obs = env.reset()
-        valid_state = valid_state_f(detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False))
-    # Generate the plan
-    state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-    init_predicates = {map_predicate(predicate): True for predicate in state.keys() if 'on' in predicate and state[predicate]}
-    init_predicates.update({change_predicate(predicate): True for predicate in state.keys() if 'clear' in predicate and state[predicate]})
+    plan = False
+    # Reset the environment until a valid state is reached
+    while plan == False:
+        while not valid_state:
+            # Reset the environment
+            try:
+                obs, _ = env.reset()
+            except Exception as e:
+                obs = env.reset()
+            valid_state = valid_state_f(detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False))
+        # Generate the plan
+        state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+        init_predicates = {map_predicate(predicate): True for predicate in state.keys() if 'on' in predicate and state[predicate]}
+        init_predicates.update({change_predicate(predicate): True for predicate in state.keys() if 'clear' in predicate and state[predicate]})
 
-    add_predicates_to_pddl('problem_static.pddl', init_predicates)
-    plan, _ = call_planner("domain_asp", "problem_dummy")
+        add_predicates_to_pddl('problem_static.pddl', init_predicates)
+        plan, _ = call_planner("domain_asp", "problem_dummy")
     print("Plan: ", plan)
 
     num_successful_operations = 0
@@ -262,3 +265,14 @@ print("Pick failure rate: ", pick_failure/(100))
 print("Reach pick failure rate: ", reach_pick_failure/(100))
 print("Reach drop failure rate: ", reach_drop_failure/(100))
 print("Drop failure rate: ", drop_failure/(100))
+
+# Write the results to a file results_seed_{args.seed}.txt
+with open(f"results_seed_{args.seed}.txt", 'w') as file:
+    file.write("Success rate: {}\n".format(successes/(100)))
+    file.write("Pick failure rate: {}\n".format(pick_failure/(100)))
+    file.write("Reach pick failure rate: {}\n".format(reach_pick_failure/(100)))
+    file.write("Reach drop failure rate: {}\n".format(reach_drop_failure/(100)))
+    file.write("Drop failure rate: {}\n".format(drop_failure/(100)))
+    file.write("Mean Successful operations: {}\n".format(mean(successful_operations)))
+    file.write("Mean Percentage advancement: {}\n".format(mean(percentage_advancement)))
+
