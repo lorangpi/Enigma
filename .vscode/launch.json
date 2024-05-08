@@ -13,7 +13,7 @@
             "args": [
                 //"--split_action", "--seed", "5", "--name", "automated_demos", "--episodes", "2"
                 //"--data_dir", "data/demo_seed_5/automated_demos"
-                //"--data_dir", "data/demo_seed_5/automated_demos", "--render", "-action", "pick"
+                "--data_dir", "data/demo_seed_5/automated_demos", "--render", "-action", "reach_drop", "-off_rl"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/robosuite/src:${workspaceFolder}/robosuite/src/robosuite"
