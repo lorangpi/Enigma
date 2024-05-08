@@ -6,6 +6,27 @@ pddl_dir = "./PDDL"
 domain_dir = "Domains"
 problem_dir = "Problems"
 
+def add_predicates_to_pddl(pddl_name, init_predicates):
+    pddl_file_path = pddl_dir + os.sep + problem_dir + os.sep + pddl_name
+    with open(pddl_file_path, 'r') as file:
+        lines = file.readlines()
+
+    init_index = lines.index('(:init \n')
+    for predicate, value in init_predicates.items():
+        if value:
+            # first convert the predicate of the form "p1(o1,o1)" to "p1 o1 o1"
+            predicate = predicate.replace('(', ' ').replace(')', ' ').replace(',', ' ')
+            # then add the predicate to the init section
+            lines.insert(init_index + 1, f'({predicate})\n')
+
+    # define new problem file path with the end file being named as "problem_dummy.pddl" (os.sep is used to handle the path separator)
+    problem_path = pddl_dir + os.sep + problem_dir + os.sep + "problem_dummy.pddl"
+
+    # overwrite the new problem file
+    with open(problem_path, 'w') as file:
+        file.writelines(lines)
+
+
 def call_planner(domain, problem, structure="pddl"):
     '''
         Given a domain and a problem file
