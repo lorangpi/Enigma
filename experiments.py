@@ -273,4 +273,5 @@ with open(f"results_seed_{args.seed}.txt", 'w') as file:
     file.write("Reach drop failure rate: {}\n".format(reach_drop_failure/(100)))
     file.write("Drop failure rate: {}\n".format(drop_failure/(100)))
     file.write("Mean Successful operations: {}\n".format(mean(successful_operations)))
-    file.write("Mean Percentage advancement: {}\n".format(mean(percentage_advancement))
+    file.write("Mean Percentage advancement: {}\n".format(mean(percentage_advancement)))
+
