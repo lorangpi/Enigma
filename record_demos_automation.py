@@ -5,7 +5,7 @@ from robosuite.wrappers import GymWrapper
 from datetime import datetime
 import gymnasium as gym
 import numpy as np
-from robosuite.src.robosuite.wrappers.behavior_cloning.detector import Robosuite_Hanoi_Detector
+from robosuite.wrappers.behavior_cloning.detector import Robosuite_Hanoi_Detector
 from graph_learner import GraphLearner
 
 def to_datestring(unixtime: int, format='%Y-%m-%d_%H:%M:%S'):
