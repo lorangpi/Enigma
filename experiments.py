@@ -59,7 +59,7 @@ env = suite.make(
     controller_configs=controller_config,
     has_renderer=True,
     has_offscreen_renderer=True,
-    horizon=1000,
+    horizon=100000,
     use_camera_obs=False,
     #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
     random_reset=True,
@@ -189,7 +189,9 @@ for i in range(100):
     print("Episode: ", i)
     success = False
     valid_state = False
-    while not valid_state:
+    plan = False
+    # Reset the environment until a valid state is reached
+    while not valid_state or not plan:
         # Reset the environment
         try:
             obs, _ = env.reset()
