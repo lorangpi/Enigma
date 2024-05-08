@@ -11,9 +11,11 @@
             "cwd": "${workspaceFolder}",
             "justMyCode": false,
             "args": [
-                //"--split_action", "--seed", "5", "--name", "automated_demos", "--episodes", "2"
-                //"--data_dir", "data/demo_seed_5/automated_demos"
-                "--data_dir", "data/demo_seed_5/automated_demos", "--render", "-action", "reach_drop", "-off_rl"
+
+                //"--split_action", "--render", "--seed", "9", "--name", "automated_demos", "--episodes", "3"
+                //"--data_dir", "data/demo_seed_1/automated_demos"
+                //"--data_dir", "data/demo_seed_1/automated_demos", "--render", "-action", "reach_drop", "-off_rl"
+                //"-action", "pick"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/robosuite/src:${workspaceFolder}/robosuite/src/robosuite"

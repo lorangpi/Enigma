@@ -71,7 +71,7 @@ env = GymWrapper(env)
 # Load executors
 reach_pick = Executor_RL(id='ReachPick', 
                          alg=sac.SAC, 
-                         policy="/home/lorangpi/Enigma/data/demo_seed_7/2024-04-30_20:44:23_reach_pick/policy/best_model.zip",
+                         policy="data/demo_seed_0/2024-05-06_14:56:23_reach_pick/policy/best_model.zip",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
