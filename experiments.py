@@ -191,20 +191,21 @@ for i in range(100):
     valid_state = False
     plan = False
     # Reset the environment until a valid state is reached
-    while not valid_state or not plan:
-        # Reset the environment
-        try:
-            obs, _ = env.reset()
-        except Exception as e:
-            obs = env.reset()
-        valid_state = valid_state_f(detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False))
-    # Generate the plan
-    state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-    init_predicates = {map_predicate(predicate): True for predicate in state.keys() if 'on' in predicate and state[predicate]}
-    init_predicates.update({change_predicate(predicate): True for predicate in state.keys() if 'clear' in predicate and state[predicate]})
+    while plan == False:
+        while not valid_state:
+            # Reset the environment
+            try:
+                obs, _ = env.reset()
+            except Exception as e:
+                obs = env.reset()
+            valid_state = valid_state_f(detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False))
+        # Generate the plan
+        state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+        init_predicates = {map_predicate(predicate): True for predicate in state.keys() if 'on' in predicate and state[predicate]}
+        init_predicates.update({change_predicate(predicate): True for predicate in state.keys() if 'clear' in predicate and state[predicate]})
 
-    add_predicates_to_pddl('problem_static.pddl', init_predicates)
-    plan, _ = call_planner("domain_asp", "problem_dummy")
+        add_predicates_to_pddl('problem_static.pddl', init_predicates)
+        plan, _ = call_planner("domain_asp", "problem_dummy")
     print("Plan: ", plan)
 
     num_successful_operations = 0
