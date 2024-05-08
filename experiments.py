@@ -264,3 +264,13 @@ print("Pick failure rate: ", pick_failure/(100))
 print("Reach pick failure rate: ", reach_pick_failure/(100))
 print("Reach drop failure rate: ", reach_drop_failure/(100))
 print("Drop failure rate: ", drop_failure/(100))
+
+# Write the results to a file results_seed_{args.seed}.txt
+with open(f"results_seed_{args.seed}.txt", 'w') as file:
+    file.write("Success rate: {}\n".format(successes/(100)))
+    file.write("Pick failure rate: {}\n".format(pick_failure/(100)))
+    file.write("Reach pick failure rate: {}\n".format(reach_pick_failure/(100)))
+    file.write("Reach drop failure rate: {}\n".format(reach_drop_failure/(100)))
+    file.write("Drop failure rate: {}\n".format(drop_failure/(100)))
+    file.write("Mean Successful operations: {}\n".format(mean(successful_operations)))
+    file.write("Mean Percentage advancement: {}\n".format(mean(percentage_advancement))
