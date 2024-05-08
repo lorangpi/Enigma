@@ -68,7 +68,7 @@ reach_pick = Executor_RL(id='ReachPick',
                          horizon=200)
 pick = Executor_RL(id='Pick', 
                    alg=sac.SAC, 
-                   policy="./data/demo_seed_4/2024-04-26_22:41:44_pick/policy/best_model.zip", 
+                   policy="./data/demo_seed_4/2024-04-26_22:41:44_pick/policy/rl_model_290000_steps.zip",  
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[0,1],
