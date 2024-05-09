@@ -248,7 +248,7 @@ for i in range(100):
             break
         num_successful_operations += 1
     successful_operations.append(num_successful_operations)
-    percentage_advancement.append(num_successful_operations/len(plan))
+    percentage_advancement.append(num_successful_operations/len(plan) + 1e-6) # add a small number to avoid division by 0 error
     if success:
         successes += 1
         print("Execution succeeded.\n")
