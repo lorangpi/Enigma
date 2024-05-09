@@ -1,0 +1,7 @@
+Success rate: 0.04
+Pick failure rate: 0.08
+Reach pick failure rate: 0.34
+Reach drop failure rate: 0.48
+Drop failure rate: 0.06
+Mean Successful operations: 0.7
+Mean Percentage advancement: 0.17848801990879526
