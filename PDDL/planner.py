@@ -65,7 +65,7 @@ def _output_to_plan(output, structure):
             try:
                 action_set.append(''.join(action.split(": ")[1]))
             except IndexError:
-                return False, False
+                return [], [] # already at goal state, no action needed
         
         # convert the action set to the actions permissable in the domain
         game_action_set = copy.deepcopy(action_set)
