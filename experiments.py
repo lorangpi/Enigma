@@ -235,10 +235,10 @@ for i in range(100):
             obs, success = action_step.execute(env, obs, goal, symgoal, render=True)
             if not success:
                 print("Execution failed.\n")
-                if 'Pick' in action_step.id:
-                    pick_failure += 1
-                elif 'ReachPick' in action_step.id:
+                if 'ReachPick' in action_step.id:
                     reach_pick_failure += 1
+                elif 'Pick' in action_step.id:
+                    pick_failure += 1
                 elif 'ReachDrop' in action_step.id:
                     reach_drop_failure += 1
                 elif 'Drop' in action_step.id:

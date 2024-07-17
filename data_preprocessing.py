@@ -2,11 +2,12 @@ import zipfile, pickle, copy, json, argparse, os
 import datasets
 import numpy as np
 from datasets import Dataset, Features, Value, ClassLabel, Sequence
-from imitation.data import types, TrajectorywithRew
+#from imitation.data import types, TrajectorywithRew
+from imitation.data.types import TrajectoryWithRew
 from imitation.data import huggingface_utils, serialize
 
 
-class GoalTrajectory(TrajectorywithRew):
+class GoalTrajectory(TrajectoryWithRew):
     """A `Trajectory` that additionally includes reward information."""
 
     desired_goals: np.ndarray
@@ -95,6 +96,13 @@ def prepare_data_for_dataset(trajectories, args):
         rews = np.array([step[3] for step in episode])
         infos = np.array([{} for _ in episode])  # Assuming empty dicts for infos
         terminal = True #episode[-1][4]  # The 'done' flag of the last step
+        # print("obs shape: ", np.array(obs).shape)
+        # print("acts shape: ", np.array(acts).shape)
+        # print("rews shape: ", np.array(rews).shape)
+        # print("infos shape: ", np.array(infos).shape)
+        # print("terminal shape: ", np.array(terminal).shape)
+        # print("")
+        # print("obs shape: ", obs[0])
         #if terminal:
         #    print("an episode that reached the goal")
         if args.goal_env:
@@ -102,7 +110,7 @@ def prepare_data_for_dataset(trajectories, args):
             achieved_goals = np.array([step[5] for step in episode])
             traj_obj = GoalTrajectory(obs=obs, acts=acts, infos=infos, rews=rews, terminal=terminal, desired_goals=desired_goals, achieved_goals=achieved_goals)
         else:
-            traj_obj = types.TrajectoryWithRew(obs=obs, acts=acts, infos=infos, rews=rews, terminal=terminal)
+            traj_obj = TrajectoryWithRew(obs=obs, acts=acts, infos=infos, rews=rews, terminal=terminal)
         trajectory_objects.append(traj_obj)
 
     return trajectory_objects

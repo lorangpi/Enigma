@@ -6,6 +6,7 @@ from datetime import datetime
 import gymnasium as gym
 import numpy as np
 from robosuite.wrappers.behavior_cloning.detector import Robosuite_Hanoi_Detector
+from robosuite.wrappers.behavior_cloning.hanoi_pick_place import PickPlaceWrapper
 from graph_learner import GraphLearner
 
 def to_datestring(unixtime: int, format='%Y-%m-%d_%H:%M:%S'):
@@ -60,6 +61,7 @@ class RecordDemos(gym.Wrapper):
 
         self.reset_step_count = 0
         #print("Moving up...")
+        #print(len(obs))
         for _ in range(5):
             action = [0,0,1,0]
             next_obs, _, _, _, _  = self.env.step(action)
@@ -248,7 +250,10 @@ class RecordDemos(gym.Wrapper):
         # Reset the environment
         self.episode_buffer = dict() # 1 episode here consists of a trajectory between 2 symbolic nodes
         self.symbolic_buffer = list()
-        obs = self.env.reset()
+        try:
+            obs, _ = self.env.reset()
+        except:
+            obs = self.env.reset()
         self.sample_task()
         self.sim.forward()
         return obs
@@ -273,27 +278,27 @@ class RecordDemos(gym.Wrapper):
 
     def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="trace", reward=-1.0, done=False, info=None):
         # Step through the simulation and render
-        if not(self.args.split_action):
-            action_step = 'trace'
-        else:
-            if "pick" in action_step:
-                goal = self.goal_mapping[self.obj_to_pick]
-                goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
-            if "drop" in action_step:
-                goal = self.goal_mapping[self.place_to_drop]
-                if 'cube' in self.place_to_drop:
-                    goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]][:3]
-                else:
-                    goal_location = self.area_pos[self.place_to_drop][:3]
-            # replace goal with the object's array of x, y, z location
-            obs = np.concatenate((obs, goal_location))
-            next_obs = np.concatenate((next_obs, goal_location))
+        # if "pick" in action_step:
+        #     goal = self.goal_mapping[self.obj_to_pick]
+        #     goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
+        # if "drop" in action_step:
+        #     goal = self.goal_mapping[self.place_to_drop]
+        #     if 'cube' in self.place_to_drop:
+        #         goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]][:3]
+        #     else:
+        #         goal_location = self.area_pos[self.place_to_drop][:3]
+        # replace goal with the object's array of x, y, z location
+        #obs = np.concatenate((obs, goal_location))
+        #next_obs = np.concatenate((next_obs, goal_location))
         if self.args.goal_env:
             desired_goal = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
             achieved_goal = self.env.sim.data.body_xpos[self.gripper_body][:3]
             transition = (obs, action, next_obs, reward, done, desired_goal, achieved_goal)
         else:
+            #print(len(obs), len(action), len(next_obs), reward, done)
             transition = (obs, action, next_obs, reward, done)
+        if not(self.args.split_action):
+            action_step = 'trace'
         if action_step not in self.action_steps:
             self.action_steps.append(action_step)
         if action_step not in self.episode_buffer.keys():
@@ -340,37 +345,39 @@ class RecordDemos(gym.Wrapper):
         return False
 
     def sample_task(self):
-        # Sample a random task
-        valid_task = False
-        while not valid_task:
-            # Sample a random task, bias towards the least sampled tasks (cf. self.picked and self.placed)
-            pick_counts = np.bincount(self.picked, minlength=4)
-            place_counts = np.bincount(self.placed, minlength=7)
-            pick_weights = 1 / (pick_counts[1:] + 1)  # Add 1 to avoid division by zero
-            place_weights = 1 / (place_counts[1:] + 1)
-            cube_to_pick = np.random.choice(np.arange(1, 4), p=pick_weights / pick_weights.sum())
-            place_to_drop = np.random.choice(np.arange(1, 7), p=place_weights / place_weights.sum())
-            pick = cube_to_pick
-            place = place_to_drop
-            if cube_to_pick >= place_to_drop:
-                continue
-            if place_to_drop < 4:
-                place_to_drop = 'cube{}'.format(place_to_drop)
-            else:
-                place_to_drop = 'peg{}'.format(place_to_drop - 3)
-            cube_to_pick = 'cube{}'.format(cube_to_pick)
-            state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            if state['on({},{})'.format(cube_to_pick, place_to_drop)]:
-                continue
-            if state['clear({})'.format(cube_to_pick)] and state['clear({})'.format(place_to_drop)]:
-                valid_task = True
-        # print("State: {}".format(state))
-        self.picked.append(pick)
-        self.placed.append(place)
-        # Set the task
-        self.obj_to_pick = cube_to_pick
-        self.place_to_drop = place_to_drop
-        print("Task: Pick {} and drop it on {}".format(self.obj_to_pick, self.place_to_drop))
+    #     # Sample a random task
+    #     valid_task = False
+    #     while not valid_task:
+    #         # Sample a random task, bias towards the least sampled tasks (cf. self.picked and self.placed)
+    #         pick_counts = np.bincount(self.picked, minlength=4)
+    #         place_counts = np.bincount(self.placed, minlength=7)
+    #         pick_weights = 1 / (pick_counts[1:] + 1)  # Add 1 to avoid division by zero
+    #         place_weights = 1 / (place_counts[1:] + 1)
+    #         cube_to_pick = np.random.choice(np.arange(1, 4), p=pick_weights / pick_weights.sum())
+    #         place_to_drop = np.random.choice(np.arange(1, 7), p=place_weights / place_weights.sum())
+    #         pick = cube_to_pick
+    #         place = place_to_drop
+    #         if cube_to_pick >= place_to_drop:
+    #             continue
+    #         if place_to_drop < 4:
+    #             place_to_drop = 'cube{}'.format(place_to_drop)
+    #         else:
+    #             place_to_drop = 'peg{}'.format(place_to_drop - 3)
+    #         cube_to_pick = 'cube{}'.format(cube_to_pick)
+    #         state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+    #         if state['on({},{})'.format(cube_to_pick, place_to_drop)]:
+    #             continue
+    #         if state['clear({})'.format(cube_to_pick)] and state['clear({})'.format(place_to_drop)]:
+    #             valid_task = True
+    #     # print("State: {}".format(state))
+    #     self.picked.append(pick)
+    #     self.placed.append(place)
+    #     # Set the task
+    #     self.obj_to_pick = cube_to_pick
+    #     self.place_to_drop = place_to_drop
+        self.obj_to_pick = self.env.obj_to_pick
+        self.place_to_drop = self.env.place_to_drop
+    #     print("Task: Pick {} and drop it on {}".format(self.obj_to_pick, self.place_to_drop))
 
     def save_buffer(self, data_buffer, dir_path):
         # Decompose the data buffer into action steps
@@ -436,6 +443,7 @@ if __name__ == "__main__":
 
     # Wrap the environment
     env = GymWrapper(env)
+    env = PickPlaceWrapper(env)
     env = RecordDemos(env, args)
     # Reset the environment
     try:
@@ -456,10 +464,16 @@ if __name__ == "__main__":
         if done:
             obs = env.next_episode()
         else:
-            obs = env.reset()
+            try:
+                obs, _ = env.reset()
+            except:
+                obs = env.reset()
         done = False
         if episode % 10 == 0 and episode > 0:
-            obs = env.reset()
+            try:
+                obs, _ = env.reset()
+            except:
+                obs = env.reset()
         if episode % 50 == 0:
             print("\n Graph mapping: ", env.Graph.state_mapping)
         episode += 1
