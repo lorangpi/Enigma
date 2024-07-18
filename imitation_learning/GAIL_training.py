@@ -174,7 +174,7 @@ def make_env(cfg: DictConfig):
     return env, eval_env
 
 
-def train(cfg: DictConfig, file_prefix: str='') -> float:
+def train(cfg: DictConfig, file_prefix: str='/Enigma/imitation_learning/') -> float:
   # Configuration check
   assert cfg.algorithm in ['AdRIL', 'BC', 'DRIL', 'GAIL', 'GMMIL', 'PWIL', 'RED', 'SAC']
   assert cfg.data_dir != '' and os.path.exists(cfg.data_dir)
@@ -242,7 +242,7 @@ def train(cfg: DictConfig, file_prefix: str='') -> float:
 
   last_step = 1
   # Test if a "load" path is given as a config arg # load actor, critic, discriminator and metric from load path
-  if cfg.load:
+  if 'load' in cfg and cfg.load:
       print("Loading model from path: ", cfg.load)
       # Path is load path + file_prefix + "_"last step number + ".pth"
       # Search for the last step number in the load path
