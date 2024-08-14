@@ -16,7 +16,7 @@ gym.logger.set_level(ERROR)  # Ignore warnings from Gym logger
 
 
 ENVS = ['ant', 'halfcheetah', 'hopper', 'walker2d']  # Supported envs
-ROBOS_ENVS = ['pick', 'reach_pick', 'drop', 'reach_drop', 'pick_place']
+ROBOS_ENVS = ['pick', 'reach_pick', 'drop', 'reach_drop', 'pick_place', 'reach_and_pick', 'reach_and_place']
 
 
 class D4RLEnv():

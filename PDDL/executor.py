@@ -71,7 +71,7 @@ class Executor_RL(Executor):
             action, _states = self.model.predict(obs)
             #print("Input action: ", action)
             # if self.nulified_action_indexes is not empty, fill the action with zeros at the indexes
-            if self.nulified_action_indexes:
+            if self.nulified_action_indexes != []:
                 for index in self.nulified_action_indexes:
                     action = np.insert(action, index, 0)
             #print("Transformed action: ", action)        
@@ -118,6 +118,7 @@ class Executor_GAIL(Executor):
         This method is responsible for executing the policy on the given state. It takes a state as a parameter and returns the action 
         produced by the policy on that state. 
         '''
+        goal_check = np.zeros(3)
         horizon = self.horizon if self.horizon is not None else 500
         dummy_env = self.wrapper(env, nulified_action_indexes=self.nulified_action_indexes, horizon=horizon) if self.wrapper is not None else env
         D4RLEnv(dummy_env, True, max_episode_steps=700)
@@ -147,18 +148,25 @@ class Executor_GAIL(Executor):
             obs = torch.from_numpy(obs)
             obs = torch.tensor(obs, dtype=torch.float32).unsqueeze(dim=0)  # Add batch dimension to state
             obs = torch.cat([obs, torch.zeros(obs.size(0), 1)], dim=1) # absorbing state (D4rl env)
+            #obs_to_check = obs[0][-3:].numpy() if obs.shape[1] > 1 else obs[-3:].numpy()
+            #if any(goal_check != obs_to_check):
+            #    print("\t\t\n\nPrevious goal: {}, New goal: {}\n\n".format(goal_check, obs_to_check))
+            #goal_check = obs_to_check
             action = self.model.get_greedy_action(obs)  # Take greedy action
             #print("Input action: ", action)
             # Detach the tensor and convert it to a numpy array
             action = action.detach().numpy()
+            # If action shape is matrix, convert it to a vector
+            if len(action.shape) > 1:
+                action = action[0]
             # if self.nulified_action_indexes is not empty, fill the action with zeros at the indexes
-            if self.nulified_action_indexes:
+            if self.nulified_action_indexes != []:
                 for index in self.nulified_action_indexes:
                     action = np.insert(action, index, 0)
             #print("Transformed action: ", action)   
             # convert the action back to a torch tensor
             #action = torch.tensor(action, dtype=torch.float32).unsqueeze(dim=0)
-            #d4rl_env = D4RLEnv(env, True, max_episode_steps=700)     
+            #d4rl_env = D4RLEnv(env, True, max_episode_steps=700) 
             try: 
                 #obs, reward, terminated = d4rl_env.step(action)
                 obs, reward, terminated, truncated, info = env.step(action)
@@ -183,6 +191,6 @@ class Executor_GAIL(Executor):
             if extra_steps > 5:
                 print("\tSuccess: Task completed in {} steps\n".format(step_executor))
                 done = True
-            if step_executor > 300:
+            if step_executor > 100:
                 done = True 
         return obs, reached_success

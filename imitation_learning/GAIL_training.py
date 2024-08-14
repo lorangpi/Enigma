@@ -25,6 +25,8 @@ from robosuite.wrappers.behavior_cloning.hanoi_drop import DropWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_reach_pick import ReachPickWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_reach_drop import ReachDropWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_pick_place import PickPlaceWrapper
+from robosuite.wrappers.behavior_cloning.hanoi_reach_and_pick import ReachAndPickWrapper
+from robosuite.wrappers.behavior_cloning.hanoi_reach_and_drop import ReachAndPlaceWrapper
 from stable_baselines3.common import monitor
 from imitation.data import serialize
 from datetime import datetime
@@ -38,8 +40,8 @@ def main(cfg: DictConfig):
 
 # Load the controller config
 controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
-env_map = {'pick': PickWrapper, 'drop': DropWrapper, 'reach_pick': ReachPickWrapper, 'reach_drop': ReachDropWrapper, 'trace': PickPlaceWrapper}
-env_horizon = {'pick': 70, 'drop': 50, 'reach_pick': 200, 'reach_drop': 200, 'trace': 400}
+env_map = {'pick': PickWrapper, 'drop': DropWrapper, 'reach_pick': ReachPickWrapper, 'reach_drop': ReachDropWrapper, 'trace': PickPlaceWrapper, 'reach_and_pick': ReachAndPickWrapper, 'reach_and_place': ReachAndPlaceWrapper}
+env_horizon = {'pick': 70, 'drop': 50, 'reach_pick': 200, 'reach_drop': 200, 'trace': 400, 'reach_and_pick': 300, 'reach_and_place': 300}
 
 # Find indexes of the action space in the trajectories that are never used in the expert demonstrations or are always the same value
 def find_constant_indexes(action):
@@ -87,7 +89,7 @@ def make_env(cfg: DictConfig):
     max_len_obs = max([len(demo.obs) for demo in demo_auto_trajectories[cfg.action]])
     max_len_act = max([len(demo.acts) for demo in demo_auto_trajectories[cfg.action]])
 
-    env_horizon[cfg.action] = max_len_obs + 10
+    env_horizon[cfg.env] = max_len_obs + 10
 
     # Pad each trajectory with the last observation value until it reaches max_len
     padded_obs = []
@@ -144,8 +146,8 @@ def make_env(cfg: DictConfig):
 
     # Wrap the environment
     env = GymWrapper(env)
-    if cfg.action in env_map:
-        env = env_map[cfg.action](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[cfg.action])
+    if cfg.env in env_map:
+        env = env_map[cfg.env](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[cfg.env])
     obs = env.reset(seed=cfg.seed)
 
     print("Observation space: ", env.observation_space)
@@ -165,12 +167,13 @@ def make_env(cfg: DictConfig):
 
     # Wrap the environment
     eval_env = GymWrapper(eval_env)
-    if cfg.action in env_map:
-        eval_env = env_map[cfg.action](eval_env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[cfg.action])
+    if cfg.env in env_map:
+        eval_env = env_map[cfg.env](eval_env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[cfg.env])
     eval_env.reset(seed=cfg.seed)
-  
-    env, eval_env = D4RLEnv(env, cfg.imitation.absorbing, dataset=dataset, max_episode_steps=env_horizon[cfg.action]), D4RLEnv(eval_env, cfg.imitation.absorbing, max_episode_steps=env_horizon[cfg.action])
+
+    env, eval_env = D4RLEnv(env, cfg.imitation.absorbing, dataset=dataset, max_episode_steps=env_horizon[cfg.env]), D4RLEnv(eval_env, cfg.imitation.absorbing, max_episode_steps=env_horizon[cfg.env])
     print("Observation space: ", env.observation_space)
+    print("Action space: ", env.action_space)
     return env, eval_env
 
 
