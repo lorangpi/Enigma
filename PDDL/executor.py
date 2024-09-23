@@ -191,6 +191,6 @@ class Executor_GAIL(Executor):
             if extra_steps > 5:
                 print("\tSuccess: Task completed in {} steps\n".format(step_executor))
                 done = True
-            if step_executor > 100:
+            if step_executor > 1000:
                 done = True 
         return obs, reached_success

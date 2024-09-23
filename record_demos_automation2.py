@@ -59,9 +59,9 @@ class RecordDemos(gym.Wrapper):
         state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
         self.state_memory = state
 
-        # Moving randomly 0 to 50 steps
-        for k in range(np.random.randint(1, 50)):
-            generate_random_3d_action = np.random.uniform(-0.2, 0.2, 3)
+        # Moving randomly 0 to 200 steps
+        for k in range(np.random.randint(1, 200)):
+            generate_random_3d_action = np.random.uniform(-0.5, 0.5, 3)
             action = np.concatenate([generate_random_3d_action, [0]])
             obs,_,_,_,_ = self.env.step(action)
             self.env.render() if self.render_init else None
@@ -174,9 +174,9 @@ class RecordDemos(gym.Wrapper):
         state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
 
         self.reset_step_count = 0
-        # Moving randomly 0 to 50 steps
-        for k in range(np.random.randint(1, 50)):
-            generate_random_3d_action = np.random.uniform(-0.2, 0.2, 3)
+        # Moving randomly 0 to 200 steps
+        for k in range(np.random.randint(1, 200)):
+            generate_random_3d_action = np.random.uniform(-0.5, 0.5, 3)
             action = np.concatenate([generate_random_3d_action, [0]])
             obs,_,_,_,_ = self.env.step(action)
             self.env.render() if self.render_init else None
@@ -260,6 +260,7 @@ class RecordDemos(gym.Wrapper):
             obs, _ = self.env.reset()
         except:
             obs = self.env.reset()
+        print("OBS: ", obs)
         self.sample_task()
         self.sim.forward()
         return obs

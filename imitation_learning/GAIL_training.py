@@ -177,7 +177,7 @@ def make_env(cfg: DictConfig):
     return env, eval_env
 
 
-def train(cfg: DictConfig, file_prefix: str='/Enigma/imitation_learning/') -> float:
+def train(cfg: DictConfig, file_prefix: str='') -> float:
   # Configuration check
   assert cfg.algorithm in ['AdRIL', 'BC', 'DRIL', 'GAIL', 'GMMIL', 'PWIL', 'RED', 'SAC']
   assert cfg.data_dir != '' and os.path.exists(cfg.data_dir)
