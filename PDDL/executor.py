@@ -113,6 +113,22 @@ class Executor_GAIL(Executor):
         # Create a DictConfig instance
         self.model_cfg = DictConfig(config_dict)
 
+    def load_policy(self, env):
+        horizon = self.horizon if self.horizon is not None else 500
+        dummy_env = self.wrapper(env, nulified_action_indexes=self.nulified_action_indexes, horizon=horizon) if self.wrapper is not None else env
+        if dummy_env.observation_space.shape[0] < 48:
+            dummy_env = D4RLEnv(dummy_env, True, max_episode_steps=700)
+        print("\tLoading policy {}".format(self.policy))
+        print("\tNumber of nulified indexes: ", len(self.nulified_action_indexes))
+        print("\tAction space: ", dummy_env.action_space)
+        horizon = self.horizon if self.horizon is not None else 500
+        print("\tCreating the model")
+        print("\tObservation space: ", dummy_env.observation_space.shape[0])
+        self.model = self.alg(dummy_env.observation_space.shape[0], dummy_env.action_space.shape[0], self.model_cfg)
+        # Load the entire dictionary
+        checkpoint = torch.load(self.policy)
+        self.model.load_state_dict(checkpoint['actor'])
+
     def execute(self, env, obs, goal, symgoal, render=False):
         '''
         This method is responsible for executing the policy on the given state. It takes a state as a parameter and returns the action 
@@ -120,17 +136,10 @@ class Executor_GAIL(Executor):
         '''
         goal_check = np.zeros(3)
         horizon = self.horizon if self.horizon is not None else 500
-        dummy_env = self.wrapper(env, nulified_action_indexes=self.nulified_action_indexes, horizon=horizon) if self.wrapper is not None else env
-        D4RLEnv(dummy_env, True, max_episode_steps=700)
+
+
         print("\tTask goal: ", symgoal)
-        print("\tLoading policy {}".format(self.policy))
-        print("\tNumber of nulified indexes: ", len(self.nulified_action_indexes))
-        print("\tAction space: ", dummy_env.action_space)
-        if self.model is None:
-            self.model = self.alg(dummy_env.observation_space.shape[0], dummy_env.action_space.shape[0], self.model_cfg)
-            # Load the entire dictionary
-            checkpoint = torch.load(self.policy)
-            self.model.load_state_dict(checkpoint['actor'])
+
         step_executor = 0
         done = False
         success = False 
@@ -191,6 +200,6 @@ class Executor_GAIL(Executor):
             if extra_steps > 5:
                 print("\tSuccess: Task completed in {} steps\n".format(step_executor))
                 done = True
-            if step_executor > 1000:
+            if step_executor > horizon:
                 done = True 
         return obs, reached_success

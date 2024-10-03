@@ -129,6 +129,7 @@ def make_env(cfg: DictConfig):
     dataset['terminals'] = torch.as_tensor(terminals, dtype=torch.float32)
     dataset['actions'] = torch.as_tensor(padded_act, dtype=torch.float32)
     dataset['timeouts'] = torch.zeros_like(dataset['terminals'], dtype=torch.float32)
+    print("Number of trajectories: ", len(demo_auto_trajectories[cfg.action]))
 
     # Create the environment
     print("Creating environment with seed: ", cfg.seed)
@@ -146,7 +147,9 @@ def make_env(cfg: DictConfig):
 
     # Wrap the environment
     env = GymWrapper(env)
-    if cfg.env in env_map:
+    if cfg.env in env_map and 'goal_type' in cfg:
+        env = env_map[cfg.env](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[cfg.env], goal_type=cfg.goal_type)
+    elif cfg.env in env_map:
         env = env_map[cfg.env](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[cfg.env])
     obs = env.reset(seed=cfg.seed)
 
@@ -179,6 +182,7 @@ def make_env(cfg: DictConfig):
 
 def train(cfg: DictConfig, file_prefix: str='') -> float:
   # Configuration check
+  print("Saving to: ", file_prefix)
   assert cfg.algorithm in ['AdRIL', 'BC', 'DRIL', 'GAIL', 'GMMIL', 'PWIL', 'RED', 'SAC']
   assert cfg.data_dir != '' and os.path.exists(cfg.data_dir)
   assert cfg.env in ENVS or cfg.env in ROBOS_ENVS
