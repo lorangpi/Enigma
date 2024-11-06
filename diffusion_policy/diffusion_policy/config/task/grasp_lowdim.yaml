@@ -1,4 +1,4 @@
-name: pick_place_lowdim
+name: grasp_lowdim
 
 obs_dim: 15
 action_dim: 4
@@ -25,7 +25,7 @@ env_runner:
 
 dataset:
   _target_: diffusion_policy.dataset.pick_place_dataset.PickPlaceLowdimDataset
-  zarr_path: data/demo_seed_1/pick_place_keypoint/trace/keypoint/keypoint.zarr
+  zarr_path: data/demo_seed_1/4_split_keypoint/pick/keypoint/keypoint.zarr
   horizon: ${horizon}
   pad_before: ${eval:'${n_obs_steps}-1+${n_latency_steps}'}
   pad_after: ${eval:'${n_action_steps}-1'}

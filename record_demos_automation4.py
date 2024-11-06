@@ -116,7 +116,7 @@ class RecordDemos(gym.Wrapper):
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="reach_pick")
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -445,7 +445,7 @@ if __name__ == "__main__":
     parser.add_argument('--experiment', type=str, default='demo', choices=['demo'], 
                         help='Name of the experiment. Used to name the log and model directories. Augmented means that the observations are augmented with the detector observation.')
     parser.add_argument('--data_folder', type=str, default='./data/', help='Path to the data folder')
-    parser.add_argument('--episodes', type=int, default=int(200), help='Number of episodes to train for')
+    parser.add_argument('--episodes', type=int, default=int(300), help='Number of episodes to train for')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
     parser.add_argument('--render', action='store_true', help='Render the initial state')

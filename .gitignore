@@ -130,3 +130,5 @@ imitation_learning/outputs/
 imitation_learning/.ipynb_checkpoints/
 imitation_learning/figures/
 imitation_learning/__pycache__/
+
+!diffusion_policy/
