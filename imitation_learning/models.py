@@ -11,8 +11,8 @@ from torch.distributions.transforms import TanhTransform
 from torch.nn import Parameter, functional as F
 from torch.nn.utils import parametrizations
 
-#from imitation_learning.memory import ReplayMemory
-from memory import ReplayMemory
+from imitation_learning.memory import ReplayMemory
+#from memory import ReplayMemory
 
 ACTIVATION_FUNCTIONS = {'relu': nn.ReLU, 'sigmoid': nn.Sigmoid, 'tanh': nn.Tanh}
 

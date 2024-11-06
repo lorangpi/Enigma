@@ -9,8 +9,8 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 
-#from imitation_learning.memory import ReplayMemory
-from memory import ReplayMemory
+from imitation_learning.memory import ReplayMemory
+#from memory import ReplayMemory
 
 gym.logger.set_level(ERROR)  # Ignore warnings from Gym logger
 

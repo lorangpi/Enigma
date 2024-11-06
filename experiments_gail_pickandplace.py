@@ -64,12 +64,12 @@ pick = Executor_GAIL(id='Pick',
                             horizon=70)
 place = Executor_GAIL(id='Place',
                             alg=SoftActor,
-                            policy="/home/lorangpi/Enigma/imitation_learning/outputs/GAIL_reach_and_place/09-25_08-39-09/agent_710000.pth",
+                            policy="/home/lorangpi/Enigma/imitation_learning/outputs/GAIL_reach_and_place/10-02_11-19-18/agent_1280000.pth",
                             #policy="/home/lorangpi/Enigma/hpc/place_policy.pth",
                             I={},
                             Beta=termination_indicator('place'),
                             #wrapper = PickPlaceWrapper,
-                            horizon=70)
+                            horizon=170)
 
 Move_action = [pick, place]
 

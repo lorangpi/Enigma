@@ -5,14 +5,17 @@
 # This files implements the structure of the executor object used in this paper.
 
 '''
-import copy
+import dill
 import torch
-import time
+import hydra
 import numpy as np
 from stable_baselines3 import SAC
 from stable_baselines3.common.utils import set_random_seed
 from omegaconf import DictConfig
 from imitation_learning.environments import D4RLEnv
+from diffusion_policy.common.pytorch_util import dict_apply
+from diffusion_policy.workspace.base_workspace import BaseWorkspace
+from diffusion_policy.workspace.train_diffusion_transformer_lowdim_workspace import TrainDiffusionTransformerLowdimWorkspace
 set_random_seed(0, using_cuda=True)
 
 class Executor():
@@ -195,6 +198,98 @@ class Executor_GAIL(Executor):
                 #time.sleep(2)
                 # Run 2 extra steps to make sure the goal is reached
                 reached_success = True
+            if reached_success:
+                extra_steps += 1
+            if extra_steps > 5:
+                print("\tSuccess: Task completed in {} steps\n".format(step_executor))
+                done = True
+            if step_executor > horizon:
+                done = True 
+        return obs, reached_success
+
+class Executor_Diffusion(Executor):
+    def __init__(self, id, policy, I, Beta, Circumstance=None, basic=False, nulified_action_indexes=[], wrapper=None, horizon=None, device="cpu"):
+        super().__init__(id, "RL", I, Beta, Circumstance, basic)
+        self.policy = policy
+        self.model = None
+        self.nulified_action_indexes = nulified_action_indexes
+        self.wrapper = wrapper
+        self.horizon = horizon
+        self.device = device
+
+    def load_policy(self):
+        path = self.policy
+        # load checkpoint
+        payload = torch.load(open(path, 'rb'), pickle_module=dill)
+        cfg = payload['cfg']
+        #cls = hydra.utils.get_class(cfg._target_)
+        #target = "diffusion_policy.diffusion_policy.workspace.train_diffusion_transformer_lowdim_workspace.TrainDiffusionTransformerLowdimWorkspace"
+        #cls = hydra.utils.get_class(target)
+        cls = TrainDiffusionTransformerLowdimWorkspace
+        #workspace = cls(cfg, output_dir="../data/")
+        workspace = cls(cfg)
+        workspace: BaseWorkspace
+        workspace.load_payload(payload, exclude_keys=None, include_keys=None)
+
+        # get policy from workspace
+        policy = workspace.model
+        if cfg.training.use_ema:
+            policy = workspace.ema_model
+
+        #device = torch.device(self.device)
+        policy.to(self.device)
+        policy.eval()
+        policy.reset()
+        self.model = policy
+
+    def execute(self, env, obs, goal, symgoal, render=False):
+        '''
+        This method is responsible for executing the policy on the given state. It takes a state as a parameter and returns the action 
+        produced by the policy on that state. 
+        '''
+        horizon = self.horizon if self.horizon is not None else 500
+        print("\tTask goal: ", symgoal)
+
+        step_executor = 0
+        done = False
+        success = False 
+        reached_success = False
+        extra_steps = 0
+        while not done:
+            # create obs dict
+            np_obs_dict = {
+                'obs': obs.astype(np.float32)
+            }
+            # device transfer
+            obs_dict = dict_apply(np_obs_dict, 
+                lambda x: torch.from_numpy(x).to(
+                    device=self.device))
+            # run policy
+            with torch.no_grad():
+                action_dict = self.model.predict_action(obs_dict)
+            # device_transfer
+            np_action_dict = dict_apply(action_dict,
+                lambda x: x.detach().to('cpu').numpy())
+            action = np_action_dict['action']
+            # If the actions in action (array) do not have 4 elements, then concatenate [0] to the action array
+            if len(action[0][0]) < 4:
+                # Create a column of zeros
+                zeros_column = np.zeros((action.shape[0], action.shape[1], 1))
+                # Concatenate the zeros column to the original array
+                action = np.concatenate((action, zeros_column), axis=2)
+            # step env
+            try: 
+                obs, reward, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
+            except:
+                obs, reward, done, info = env.step(action)
+            done = np.all(done)
+            step_executor += 1
+            state = info[0]['state'][0]
+            success = self.Beta(state, symgoal)
+            if success:
+                reached_success = True
+                done = True
             if reached_success:
                 extra_steps += 1
             if extra_steps > 5:

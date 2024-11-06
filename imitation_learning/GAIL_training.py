@@ -170,7 +170,9 @@ def make_env(cfg: DictConfig):
 
     # Wrap the environment
     eval_env = GymWrapper(eval_env)
-    if cfg.env in env_map:
+    if cfg.env in env_map and 'goal_type' in cfg:
+        eval_env = env_map[cfg.env](eval_env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[cfg.env], goal_type=cfg.goal_type)
+    elif cfg.env in env_map:
         eval_env = env_map[cfg.env](eval_env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[cfg.env])
     eval_env.reset(seed=cfg.seed)
 
