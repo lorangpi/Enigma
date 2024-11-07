@@ -1,6 +1,6 @@
 name: reach_place_lowdim
 
-obs_dim: 7
+obs_dim: 13
 action_dim: 3
 keypoint_dim: 3
 

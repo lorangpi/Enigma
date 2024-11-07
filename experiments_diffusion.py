@@ -89,14 +89,14 @@ pickplace = Executor_Diffusion(id='PickPlace',
                    wrapper = DropWrapper,
                    horizon=300)
 place = Executor_Diffusion(id='Place', 
-                   policy="/home/lorangpi/Enigma/saved_policies/place/epoch=6250-train_loss=0.007.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/epoch=0500-train_loss=0.030.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
                    horizon=100)
 pick = Executor_Diffusion(id='Pick', 
-                   policy="/home/lorangpi/Enigma/saved_policies/pick/epoch=7500-train_loss=0.006.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/epoch=0550-train_loss=0.027.ckpt", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[],
@@ -112,7 +112,7 @@ class GymnasiumToGymWrapper(gym.Env):
         self.env = env
         self.action_space = env.action_space
         # set up observation space
-        self.obs_dim = 22
+        self.obs_dim = 13
 
         high = np.inf * np.ones(self.obs_dim)
         low = -high
@@ -120,7 +120,7 @@ class GymnasiumToGymWrapper(gym.Env):
 
     def reset(self):
         obs, info = self.env.reset()
-        keypoint = info["keypoint"]
+        keypoint = obs[-3:]
         obs = np.concatenate([
             keypoint, 
             obs], axis=-1)
@@ -129,7 +129,7 @@ class GymnasiumToGymWrapper(gym.Env):
 
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
-        keypoint = info["keypoint"]
+        keypoint = obs[-3:]
         obs = np.concatenate([
             keypoint, 
             obs], axis=-1)
@@ -157,7 +157,7 @@ def env_fn():
         has_offscreen_renderer=True,
         horizon=700,
         use_camera_obs=False,
-        render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+        render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
     )
 
@@ -181,7 +181,7 @@ dummy_env = env_fn()
 
 print(dummy_env.observation_space)
 
-obs_dim = 22
+obs_dim = 13
 high = np.inf * np.ones(obs_dim)
 low = -high
 observation_space = gym.spaces.Box(low, high, dtype=np.float64)
@@ -218,11 +218,11 @@ def gen_dummy_env():
 
 env = AsyncVectorEnv(env_fns, dummy_env_fn=gen_dummy_env())
 
-# Reset the environment
-# try:
-#     obs, info = env.reset()
-# except Exception as e:
-#     obs = env.reset()
+#Reset the environment
+try:
+    obs, info = env.reset()
+except Exception as e:
+    obs = env.reset()
 
 obs, reward, done, info = env.step([[np.zeros(4), np.zeros(4), np.zeros(4), np.zeros(4)]])
 print("Info: ", info)

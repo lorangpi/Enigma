@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
         total_timesteps = 0
         ee_dim = 4
-        obs_dim = 4
+        obs_dim = 10
         keypoint_dim = 3
         # Count total number of timesteps
         for traj in demo_trajectories_for_act:

@@ -332,9 +332,8 @@ class RecordDemos(gym.Wrapper):
         return done_drop
 
     def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="trace", reward=-1.0, done=False, info=None):
-        keypoint = obs[:3]
-        obs = obs[3:]
-        next_obs = next_obs[3:]
+        # keypoint = last 3 values of obs
+        keypoint = obs[-3:]
         #print("Key point: ", keypoint, " Obs: ", obs)
         if self.args.goal_env:
             desired_goal = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
