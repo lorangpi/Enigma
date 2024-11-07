@@ -54,49 +54,49 @@ def termination_indicator(operator):
 
 # Load executors
 reach_pick = Executor_Diffusion(id='ReachPick', 
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7550-train_loss=0.008.ckpt",
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=4100-train_loss=0.015.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
                          wrapper = ReachPickWrapper,
                          horizon=200)
 grasp = Executor_Diffusion(id='Grasp', 
-                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=6000-train_loss=0.020.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=4400-train_loss=0.023.ckpt", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[],
                    wrapper = PickWrapper,
                    horizon=100)
 reach_drop = Executor_Diffusion(id='ReachDrop', 
-                         policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/2024.11.02/04.40.16_train_diffusion_transformer_lowdim_reach_place_500/checkpoints/latest.ckpt", 
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=2250-train_loss=0.024.ckpt", 
                          I={}, 
                          Beta=termination_indicator('reach_drop'),
                          nulified_action_indexes=[3],
                          wrapper = ReachDropWrapper,
                          horizon=200)
 drop = Executor_Diffusion(id='Drop', 
-                   policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/2024.11.02/04.40.14_train_diffusion_transformer_lowdim_place_500/checkpoints/latest.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=6400-train_loss=0.021.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
                    horizon=50)
 pickplace = Executor_Diffusion(id='PickPlace', 
-                   policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=3800-train_loss=0.013.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=1000-train_loss=0.026.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
                    horizon=300)
 place = Executor_Diffusion(id='Place', 
-                   policy="/home/lorangpi/Enigma/saved_policies/epoch=0500-train_loss=0.030.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/place/epoch=1700-train_loss=0.026.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
                    horizon=100)
 pick = Executor_Diffusion(id='Pick', 
-                   policy="/home/lorangpi/Enigma/saved_policies/epoch=0550-train_loss=0.027.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/pick/epoch=2200-train_loss=0.018.ckpt", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[],
@@ -104,7 +104,7 @@ pick = Executor_Diffusion(id='Pick',
                    horizon=100)
 
 #Move_action = [reach_pick, pick, reach_drop, drop]
-Move_action = [pick, place]
+Move_action = [pickplace]
 
 # Create an env wrapper which transforms the outputs of reset() and step() into gym formats (and not gymnasium formats)
 class GymnasiumToGymWrapper(gym.Env):
@@ -120,7 +120,7 @@ class GymnasiumToGymWrapper(gym.Env):
 
     def reset(self):
         obs, info = self.env.reset()
-        keypoint = obs[-3:]
+        keypoint = obs[-3:]#info["keypoint"]#obs[-3:]
         obs = np.concatenate([
             keypoint, 
             obs], axis=-1)
@@ -129,7 +129,7 @@ class GymnasiumToGymWrapper(gym.Env):
 
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
-        keypoint = obs[-3:]
+        keypoint = obs[-3:]#info["keypoint"]#obs[-3:]
         obs = np.concatenate([
             keypoint, 
             obs], axis=-1)
@@ -173,8 +173,8 @@ def env_fn():
     )
     return env
 
-n_obs_steps = 2
-n_action_steps = 8
+n_obs_steps = 8
+n_action_steps = 4
 max_steps = 500
 env_fns = [env_fn]
 dummy_env = env_fn()

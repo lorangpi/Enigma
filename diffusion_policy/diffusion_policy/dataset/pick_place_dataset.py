@@ -82,7 +82,6 @@ class PickPlaceLowdimDataset(BaseLowdimDataset):
         obs = np.concatenate([
             keypoint.reshape(keypoint.shape[0], -1), 
             agent_pos], axis=-1)
-
         data = {
             'obs': obs, # T, D_o
             'action': sample[self.action_key], # T, D_a

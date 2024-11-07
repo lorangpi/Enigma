@@ -40,7 +40,7 @@ def main(cfg: DictConfig):
 
 # Load the controller config
 controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
-env_map = {'pick': PickWrapper, 'drop': DropWrapper, 'reach_pick': ReachPickWrapper, 'reach_drop': ReachDropWrapper, 'trace': PickPlaceWrapper, 'reach_and_pick': ReachAndPickWrapper, 'reach_and_place': ReachAndPlaceWrapper}
+env_map = {'pick': PickWrapper, 'drop': DropWrapper, 'reach_pick': ReachPickWrapper, 'reach_drop': ReachDropWrapper, 'pick_place': PickPlaceWrapper, 'trace': PickPlaceWrapper, 'reach_and_pick': ReachAndPickWrapper, 'reach_and_place': ReachAndPlaceWrapper}
 env_horizon = {'pick': 70, 'drop': 50, 'reach_pick': 200, 'reach_drop': 200, 'trace': 400, 'reach_and_pick': 300, 'reach_and_place': 300}
 
 # Find indexes of the action space in the trajectories that are never used in the expert demonstrations or are always the same value

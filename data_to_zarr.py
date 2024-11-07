@@ -193,13 +193,13 @@ if __name__ == "__main__":
         # Count total number of episodes
         n_episodes = len(demo_trajectories_for_act)
 
-        action = data.create_dataset('action', shape=(total_timesteps, ee_dim-len(constant_indexes)), chunks=(201, ee_dim), dtype='f4')
+        action = data.create_dataset('action', shape=(total_timesteps, ee_dim-len(constant_indexes)), chunks=(201, ee_dim), dtype='f8')
         low_dim = data.create_dataset('keypoint', shape=(total_timesteps, n_obj, keypoint_dim), chunks=(201, n_obj, keypoint_dim),
-                                    dtype='f4')
-        state = data.create_dataset('state', shape=(total_timesteps, obs_dim), chunks=(201, obs_dim), dtype='f4')
+                                    dtype='f8')
+        state = data.create_dataset('state', shape=(total_timesteps, obs_dim), chunks=(201, obs_dim), dtype='f8')
 
         meta = root.create_group('meta')
-        episodes_end = meta.create_dataset('episode_ends', shape=(n_episodes), chunks=(201), dtype='i4')
+        episodes_end = meta.create_dataset('episode_ends', shape=(n_episodes), chunks=(201), dtype='i8')
         print("obs_dim", obs_dim)
 
         data_cursor = 0
