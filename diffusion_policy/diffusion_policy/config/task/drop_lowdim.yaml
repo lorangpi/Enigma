@@ -1,8 +1,8 @@
 name: drop_lowdim
 
-obs_dim: 22
+obs_dim: 7
 action_dim: 4
-keypoint_dim: 7
+keypoint_dim: 3
 
 env_runner:
   _target_: diffusion_policy.env_runner.pick_place_env_runner.PickPlaceEnvRunner

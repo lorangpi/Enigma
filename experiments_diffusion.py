@@ -54,14 +54,14 @@ def termination_indicator(operator):
 
 # Load executors
 reach_pick = Executor_Diffusion(id='ReachPick', 
-                         policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/2024.11.02/04.40.12_train_diffusion_transformer_lowdim_reach_pick_500/checkpoints/latest.ckpt",
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7550-train_loss=0.008.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
                          wrapper = ReachPickWrapper,
                          horizon=200)
-pick = Executor_Diffusion(id='Pick', 
-                   policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/2024.10.29/16.25.38_train_diffusion_transformer_lowdim_pick_lowdim/checkpoints/latest.ckpt", 
+grasp = Executor_Diffusion(id='Grasp', 
+                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=6000-train_loss=0.020.ckpt", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[],
@@ -82,16 +82,23 @@ drop = Executor_Diffusion(id='Drop',
                    wrapper = DropWrapper,
                    horizon=50)
 pickplace = Executor_Diffusion(id='PickPlace', 
-                   policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/2024.11.04/16.34.51_train_diffusion_transformer_lowdim_pick_place/checkpoints/latest.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=3800-train_loss=0.013.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
                    horizon=300)
 place = Executor_Diffusion(id='Place', 
-                   policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/2024.11.04/16.44.42_train_diffusion_transformer_lowdim_place_lowdim/checkpoints/latest.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/place/epoch=6250-train_loss=0.007.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
+                   nulified_action_indexes=[],
+                   wrapper = DropWrapper,
+                   horizon=100)
+pick = Executor_Diffusion(id='Pick', 
+                   policy="/home/lorangpi/Enigma/saved_policies/pick/epoch=7500-train_loss=0.006.ckpt", 
+                   I={}, 
+                   Beta=termination_indicator('pick'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
                    horizon=100)
@@ -167,7 +174,7 @@ def env_fn():
     return env
 
 n_obs_steps = 2
-n_action_steps = 4
+n_action_steps = 8
 max_steps = 500
 env_fns = [env_fn]
 dummy_env = env_fn()

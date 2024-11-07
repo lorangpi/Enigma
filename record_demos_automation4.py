@@ -246,7 +246,7 @@ class RecordDemos(gym.Wrapper):
         self.env.time_step = 0
 
         #print("dropping object...")
-        while state['grasped({})'.format(self.obj_to_pick)]:
+        while not(state['open_gripper(gripper)']):#state['grasped({})'.format(self.obj_to_pick)]:
             action = [0,0,0,-0.1]
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
@@ -332,17 +332,21 @@ class RecordDemos(gym.Wrapper):
         return done_drop
 
     def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="trace", reward=-1.0, done=False, info=None):
+        keypoint = obs[:3]
+        obs = obs[3:]
+        next_obs = next_obs[3:]
+        #print("Key point: ", keypoint, " Obs: ", obs)
         if self.args.goal_env:
             desired_goal = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
             achieved_goal = self.env.sim.data.body_xpos[self.gripper_body][:3]
             transition = (obs, action, next_obs, reward, done, desired_goal, achieved_goal)
         elif self.args.keypoint:
-            transition = (obs, action, next_obs, self.keypoint, reward, done)
+            transition = (obs, action, next_obs, keypoint, reward, done)
         else:
             #print(len(obs), len(action), len(next_obs), reward, done)
             transition = (obs, action, next_obs, reward, done)
-        if obs.shape[0] != 15:
-            print("Obs shape: ", obs.shape)
+        #if obs.shape[0] != 15:
+            #print("Obs shape: ", obs.shape)
         if not(self.args.split_action):
             action_step = 'trace'
         if action_step not in self.action_steps:

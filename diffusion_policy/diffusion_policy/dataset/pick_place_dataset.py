@@ -78,7 +78,7 @@ class PickPlaceLowdimDataset(BaseLowdimDataset):
     def _sample_to_data(self, sample):
         keypoint = sample[self.obs_key]
         state = sample[self.state_key]
-        agent_pos = state#[:,:2]
+        agent_pos = state
         obs = np.concatenate([
             keypoint.reshape(keypoint.shape[0], -1), 
             agent_pos], axis=-1)

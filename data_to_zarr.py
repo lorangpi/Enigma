@@ -185,8 +185,8 @@ if __name__ == "__main__":
 
         total_timesteps = 0
         ee_dim = 4
-        obs_dim = 15
-        keypoint_dim = 7
+        obs_dim = 4
+        keypoint_dim = 3
         # Count total number of timesteps
         for traj in demo_trajectories_for_act:
             total_timesteps += len(traj.obs) - 1
@@ -221,8 +221,6 @@ if __name__ == "__main__":
                 low_dim[data_cursor] = [traj.keypoint[i]]
                 state[data_cursor] = traj.obs[i]
                 # If shape[0] of obs is not 15 then print the shape
-                if traj.obs[i].shape[0] != 15:
-                    print("obs shape: ", traj.obs[i].shape)
                 data_cursor += 1
 
             # Set the end of the episode
