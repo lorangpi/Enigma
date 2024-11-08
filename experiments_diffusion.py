@@ -54,49 +54,49 @@ def termination_indicator(operator):
 
 # Load executors
 reach_pick = Executor_Diffusion(id='ReachPick', 
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=4100-train_loss=0.015.ckpt",
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7600-train_loss=0.005.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
                          wrapper = ReachPickWrapper,
                          horizon=200)
 grasp = Executor_Diffusion(id='Grasp', 
-                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=4400-train_loss=0.023.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7850-train_loss=0.016.ckpt", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[],
                    wrapper = PickWrapper,
                    horizon=100)
 reach_drop = Executor_Diffusion(id='ReachDrop', 
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=2250-train_loss=0.024.ckpt", 
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=4200-train_loss=0.011.ckpt", 
                          I={}, 
                          Beta=termination_indicator('reach_drop'),
                          nulified_action_indexes=[3],
                          wrapper = ReachDropWrapper,
                          horizon=200)
 drop = Executor_Diffusion(id='Drop', 
-                   policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=6400-train_loss=0.021.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7900-train_loss=0.005.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
                    horizon=50)
 pickplace = Executor_Diffusion(id='PickPlace', 
-                   policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=1000-train_loss=0.026.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=1700-train_loss=0.021.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
-                   horizon=300)
+                   horizon=1000)
 place = Executor_Diffusion(id='Place', 
-                   policy="/home/lorangpi/Enigma/saved_policies/place/epoch=1700-train_loss=0.026.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/place/epoch=3250-train_loss=0.016.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
                    horizon=100)
 pick = Executor_Diffusion(id='Pick', 
-                   policy="/home/lorangpi/Enigma/saved_policies/pick/epoch=2200-train_loss=0.018.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/pick/epoch=4300-train_loss=0.010.ckpt", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[],
@@ -104,6 +104,7 @@ pick = Executor_Diffusion(id='Pick',
                    horizon=100)
 
 #Move_action = [reach_pick, pick, reach_drop, drop]
+#Move_action = [pick, reach_drop, drop]
 Move_action = [pickplace]
 
 # Create an env wrapper which transforms the outputs of reset() and step() into gym formats (and not gymnasium formats)
@@ -155,7 +156,7 @@ def env_fn():
         controller_configs=controller_config,
         has_renderer=True,
         has_offscreen_renderer=True,
-        horizon=700,
+        horizon=1700,
         use_camera_obs=False,
         render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
@@ -173,9 +174,9 @@ def env_fn():
     )
     return env
 
-n_obs_steps = 8
-n_action_steps = 4
-max_steps = 500
+n_obs_steps = 4
+n_action_steps = 8
+max_steps = 1000
 env_fns = [env_fn]
 dummy_env = env_fn()
 
