@@ -112,7 +112,7 @@ class RecordDemos(gym.Wrapper):
 
         #print("Opening gripper...")
         while not state['open_gripper(gripper)']:
-            action = [0,0,0,-0.1]
+            action = [0,0,0,1]
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -147,7 +147,7 @@ class RecordDemos(gym.Wrapper):
 
         #print("Closing gripper...")
         while not state['grasped({})'.format(self.obj_to_pick)]:
-            action = [0,0,0,0.1]
+            action = [0,0,0,-1]
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -247,7 +247,7 @@ class RecordDemos(gym.Wrapper):
 
         #print("dropping object...")
         while not(state['open_gripper(gripper)']):#state['grasped({})'.format(self.obj_to_pick)]:
-            action = [0,0,0,-0.1]
+            action = [0,0,0,1]
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
