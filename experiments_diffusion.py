@@ -54,31 +54,31 @@ def termination_indicator(operator):
 
 # Load executors
 reach_pick = Executor_Diffusion(id='ReachPick', 
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=5300-train_loss=0.008.ckpt",
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=2000-train_loss=0.035.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
                          wrapper = ReachPickWrapper,
                          horizon=30)
 grasp = Executor_Diffusion(id='Grasp', 
-                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=6000-train_loss=0.018.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=2700-train_loss=0.029.ckpt", 
                    I={}, 
                    Beta=termination_indicator('pick'),
-                   nulified_action_indexes=[],
+                   nulified_action_indexes=[0, 1],
                    wrapper = PickWrapper,
                    horizon=25)
 reach_drop = Executor_Diffusion(id='ReachDrop', 
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=2800-train_loss=0.020.ckpt", 
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=1100-train_loss=0.074.ckpt", 
                          I={}, 
                          Beta=termination_indicator('reach_drop'),
                          nulified_action_indexes=[3],
                          wrapper = ReachDropWrapper,
                          horizon=40)
 drop = Executor_Diffusion(id='Drop', 
-                   policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7900-train_loss=0.005.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=2750-train_loss=0.027.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
-                   nulified_action_indexes=[],
+                   nulified_action_indexes=[0, 1],
                    wrapper = DropWrapper,
                    horizon=20)
 pickplace = Executor_Diffusion(id='PickPlace', 
@@ -104,7 +104,7 @@ pick = Executor_Diffusion(id='Pick',
                    wrapper = DropWrapper,
                    horizon=40)
 
-Move_action = [reach_pick, pick, reach_drop, drop]
+Move_action = [reach_pick, grasp, reach_drop, drop]
 #Move_action = [pick, reach_drop, drop]
 #Move_action = [pickplace]
 
@@ -176,7 +176,7 @@ def env_fn():
     return env
 
 n_obs_steps = 4
-n_action_steps = 2
+n_action_steps = 8
 max_steps = 2000
 env_fns = [env_fn]
 dummy_env = env_fn()

@@ -276,7 +276,11 @@ class Executor_Diffusion(Executor):
                 # Create a column of zeros
                 zeros_column = np.zeros((action.shape[0], action.shape[1], 1))
                 # Concatenate the zeros column to the original array
-                action = np.concatenate((action, zeros_column), axis=2)
+                #action = np.concatenate((action, zeros_column), axis=2)
+                # Concatenate zeros_colum to action at self.nulified_action_indexes
+                for index in self.nulified_action_indexes:
+                    action = np.insert(action, index, 0, axis=2)
+            #print("Action: ", action)
             # step env
             try: 
                 obs, reward, terminated, truncated, info = env.step(action)
