@@ -54,59 +54,59 @@ def termination_indicator(operator):
 
 # Load executors
 reach_pick = Executor_Diffusion(id='ReachPick', 
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7600-train_loss=0.005.ckpt",
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=5300-train_loss=0.008.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
                          wrapper = ReachPickWrapper,
-                         horizon=200)
+                         horizon=30)
 grasp = Executor_Diffusion(id='Grasp', 
-                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7850-train_loss=0.016.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=6000-train_loss=0.018.ckpt", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[],
                    wrapper = PickWrapper,
-                   horizon=100)
+                   horizon=25)
 reach_drop = Executor_Diffusion(id='ReachDrop', 
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=4200-train_loss=0.011.ckpt", 
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=2800-train_loss=0.020.ckpt", 
                          I={}, 
                          Beta=termination_indicator('reach_drop'),
                          nulified_action_indexes=[3],
                          wrapper = ReachDropWrapper,
-                         horizon=200)
+                         horizon=40)
 drop = Executor_Diffusion(id='Drop', 
                    policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7900-train_loss=0.005.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
-                   horizon=50)
+                   horizon=20)
 pickplace = Executor_Diffusion(id='PickPlace', 
-                   #policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=1700-train_loss=0.021.ckpt", 
-                   policy="/home/lorangpi/Enigma/saved_policies/epoch=7800-train_loss=0.004.ckpt", 
-                   I={}, 
-                   Beta=termination_indicator('drop'),
-                   nulified_action_indexes=[],
-                   wrapper = DropWrapper,
-                   horizon=1000)
-place = Executor_Diffusion(id='Place', 
-                   policy="/home/lorangpi/Enigma/saved_policies/place/epoch=3250-train_loss=0.016.ckpt", 
+                   #policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=1900-train_loss=0.019.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/epoch=4450-train_loss=0.009.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
                    horizon=100)
+place = Executor_Diffusion(id='Place', 
+                   policy="/home/lorangpi/Enigma/saved_policies/place/epoch=3400-train_loss=0.015.ckpt", 
+                   I={}, 
+                   Beta=termination_indicator('drop'),
+                   nulified_action_indexes=[],
+                   wrapper = DropWrapper,
+                   horizon=60)
 pick = Executor_Diffusion(id='Pick', 
-                   policy="/home/lorangpi/Enigma/saved_policies/pick/epoch=4300-train_loss=0.010.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/pick/epoch=4450-train_loss=0.011.ckpt", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[],
                    wrapper = DropWrapper,
-                   horizon=100)
+                   horizon=40)
 
-#Move_action = [reach_pick, pick, reach_drop, drop]
+Move_action = [reach_pick, pick, reach_drop, drop]
 #Move_action = [pick, reach_drop, drop]
-Move_action = [pickplace]
+#Move_action = [pickplace]
 
 # Create an env wrapper which transforms the outputs of reset() and step() into gym formats (and not gymnasium formats)
 class GymnasiumToGymWrapper(gym.Env):
@@ -157,7 +157,7 @@ def env_fn():
         controller_configs=controller_config,
         has_renderer=True,
         has_offscreen_renderer=True,
-        horizon=1700,
+        horizon=2000,
         use_camera_obs=False,
         render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
@@ -165,7 +165,7 @@ def env_fn():
 
     # Wrap the environment
     env = GymWrapper(env)
-    env = PickPlaceWrapper(env, render_init=args.render, horizon=400)
+    env = PickPlaceWrapper(env, render_init=args.render, horizon=2000)
     env = GymnasiumToGymWrapper(env)
     env = MultiStepWrapper(
         env=env,
@@ -176,8 +176,8 @@ def env_fn():
     return env
 
 n_obs_steps = 4
-n_action_steps = 8
-max_steps = 1000
+n_action_steps = 2
+max_steps = 2000
 env_fns = [env_fn]
 dummy_env = env_fn()
 
@@ -228,7 +228,7 @@ except Exception as e:
 
 obs, reward, done, info = env.step([[np.zeros(4), np.zeros(4), np.zeros(4), np.zeros(4)]])
 print("Info: ", info)
-state = info[0]['state'][0]
+state = info[0]['state'][-1]
 
 # Detect the state of the environment
 # detector = Robosuite_Hanoi_Detector(env)
@@ -325,7 +325,7 @@ for i in range(100):
             except Exception as e:
                 obs = env.reset()
             obs, reward, done, info = env.step([[np.zeros(4), np.zeros(4), np.zeros(4), np.zeros(4)]])
-            state = info[0]['state'][0]
+            state = info[0]['state'][-1]
             valid_state = valid_state_f(state)
         # Generate the plan
         init_predicates = {map_predicate(predicate): True for predicate in state.keys() if 'on' in predicate and state[predicate]}

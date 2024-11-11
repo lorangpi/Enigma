@@ -280,13 +280,16 @@ class Executor_Diffusion(Executor):
             # step env
             try: 
                 obs, reward, terminated, truncated, info = env.step(action)
-                done = terminated or truncated
+                #done = terminated or truncated
             except:
                 obs, reward, done, info = env.step(action)
-            done = np.all(done)
+            #done = np.all(done)
+            if done:
+                print("Environment terminated")
             step_executor += 1
-            state = info[0]['state'][0]
+            state = info[0]['state'][-1]
             success = self.Beta(state, symgoal)
+            success = success or info[0]['is_success'][-1]
             if success:
                 reached_success = True
                 done = True
@@ -296,5 +299,6 @@ class Executor_Diffusion(Executor):
                 print("\tSuccess: Task completed in {} steps\n".format(step_executor))
                 done = True
             if step_executor > horizon:
+                print("Reached executor horizon")
                 done = True 
         return obs, reached_success

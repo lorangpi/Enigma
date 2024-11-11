@@ -57,6 +57,16 @@ class RecordDemos(gym.Wrapper):
         self.counter_cube = 0
         self.counter_demos = min(self.counter_peg, self.counter_cube)
 
+    def cap(self, eps, max_val=0.07, min_val=0.01):
+        # If the displacement is greater than the max value, cap it
+        if np.linalg.norm(eps) > max_val:
+            eps = eps / np.linalg.norm(eps) * max_val
+        # If the displacement is smaller than the min value, cap it
+        if np.linalg.norm(eps) < min_val:
+            eps = eps / np.linalg.norm(eps) * min_val
+        return eps
+
+
     def pick_reset(self, obs):
         """
         Resets the environment to a state where the gripper is holding the object
@@ -71,10 +81,19 @@ class RecordDemos(gym.Wrapper):
 
         self.keypoint = np.concatenate([goal_pos, goal_quat])
 
+        # Moving gripper to the front
+        #print("Moving gripper to the front...")
+        for _ in range(np.random.randint(0, 50)):
+            action = np.asarray([0.5,0,0,0])
+            action = action * 1000
+            next_obs, _, _, _, _  = self.env.step(action)
+            self.env.render() if self.render_init else None
+
         # Moving randomly 0 to 200 steps
-        for k in range(np.random.randint(1, 200)):
+        for k in range(np.random.randint(1, 100)):
             generate_random_3d_action = np.random.uniform(-0.5, 0.5, 3)
             action = np.concatenate([generate_random_3d_action, [0]])
+            action = action * 1000
             obs,_,_,_,_ = self.env.step(action)
             self.env.render() if self.render_init else None
 
@@ -82,7 +101,9 @@ class RecordDemos(gym.Wrapper):
         #print("Moving up...")
         #print(len(obs))
         for _ in range(np.random.randint(4, 15)):
-            action = [0,0,1,0] if not(self.randomize) else [0,0,1,0] + np.concatenate([np.random.normal(0, 0.2, 3), [0]])
+            action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([np.random.normal(0, 0.2, 3), [0]])
+            action = 5*self.cap(action)
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.env.render() if self.render_init else None
@@ -96,7 +117,9 @@ class RecordDemos(gym.Wrapper):
             gripper_pos = np.asarray(self.env.sim.data.body_xpos[self.gripper_body])
             object_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]])
             dist_xy_plan = object_pos[:2] - gripper_pos[:2]
-            action = 5*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 5*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, np.linalg.norm(dist_xy_plan), 3), [0]])
+            dist_xy_plan = self.cap(dist_xy_plan)
+            action = 5*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 5*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.5*np.linalg.norm(dist_xy_plan), 3), [0]])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -112,11 +135,12 @@ class RecordDemos(gym.Wrapper):
 
         #print("Opening gripper...")
         while not state['open_gripper(gripper)']:
-            action = [0,0,0,1]
+            action = np.asarray([0,0,0,1])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="reach_pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -131,7 +155,9 @@ class RecordDemos(gym.Wrapper):
             gripper_pos = np.asarray(self.env.sim.data.body_xpos[self.gripper_body])
             object_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]])
             dist_z_axis = [object_pos[2] - gripper_pos[2]]
-            action = 5*np.concatenate([[0, 0], dist_z_axis, [0]]) if not(self.randomize) else 5*np.concatenate([[0, 0], dist_z_axis, [0]]) + np.concatenate([np.random.normal(0, np.linalg.norm(dist_z_axis), 3), [0]])
+            dist_z_axis = self.cap(dist_z_axis)
+            action = 5*np.concatenate([[0, 0], dist_z_axis, [0]]) if not(self.randomize) else 5*np.concatenate([[0, 0], dist_z_axis, [0]]) + np.concatenate([[0, 0], np.random.normal(0, 0.5*np.linalg.norm(dist_z_axis), 1), [0]])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -147,7 +173,8 @@ class RecordDemos(gym.Wrapper):
 
         #print("Closing gripper...")
         while not state['grasped({})'.format(self.obj_to_pick)]:
-            action = [0,0,0,-1]
+            action = np.asarray([0,0,0,-1])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -189,7 +216,9 @@ class RecordDemos(gym.Wrapper):
 
         #print("Lifting object...")
         while not state['picked_up({})'.format(self.obj_to_pick)]:
-            action = [0,0,0.4,0] if not(self.randomize) else [0,0,0.5,0] + np.concatenate([np.random.normal(0, 0.1, 3), [0]])
+            action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([np.random.normal(0, 0.1, 3), [0]])
+            action = 5*self.cap(action)
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -211,7 +240,9 @@ class RecordDemos(gym.Wrapper):
             else:
                 object_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]])
             dist_xy_plan = object_pos[:2] - gripper_pos[:2]
-            action = 5*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 5*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, np.linalg.norm(dist_xy_plan), 3), [0]])
+            dist_xy_plan = self.cap(dist_xy_plan)
+            action = 5*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 5*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.5*np.linalg.norm(dist_xy_plan), 3), [0]])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -231,7 +262,9 @@ class RecordDemos(gym.Wrapper):
             object_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]])
             place_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]])
             dist_z_axis = [- (object_pos[2] - place_pos[2])]
-            action = 5*np.concatenate([[0, 0], dist_z_axis, [0]]) if not(self.randomize) else 5*np.concatenate([[0, 0], dist_z_axis, [0]]) + np.concatenate([np.random.normal(0, np.linalg.norm(dist_z_axis), 3), [0]])
+            dist_z_axis = self.cap(dist_z_axis)
+            action = 5*np.concatenate([[0, 0], dist_z_axis, [0]]) if not(self.randomize) else 5*np.concatenate([[0, 0], dist_z_axis, [0]]) + np.concatenate([[0, 0], np.random.normal(0, 0.5*np.linalg.norm(dist_z_axis), 1), [0]])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -247,7 +280,8 @@ class RecordDemos(gym.Wrapper):
 
         #print("dropping object...")
         while not(state['open_gripper(gripper)']):#state['grasped({})'.format(self.obj_to_pick)]:
-            action = [0,0,0,1]
+            action = np.asarray([0,0,0,1])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -284,7 +318,9 @@ class RecordDemos(gym.Wrapper):
 
         #print("Moving up...")
         for _ in range(np.random.randint(4, 15)):
-            action = [0,0,1,0] if not(self.randomize) else [0,0,1,0] + np.concatenate([np.random.normal(0, 0.2, 3), [0]])
+            action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([[0, 0], np.random.normal(0, 0.2, 1), [0]])
+            action = 5*self.cap(action)
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
             self.env.render() if self.render_init else None
@@ -489,7 +525,7 @@ if __name__ == "__main__":
         has_offscreen_renderer=True,
         horizon=100000000,
         use_camera_obs=False,
-        #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+        render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
     )
 

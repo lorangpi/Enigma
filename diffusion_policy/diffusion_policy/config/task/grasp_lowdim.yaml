@@ -1,7 +1,7 @@
 name: grasp_lowdim
 
 obs_dim: 13
-action_dim: 4
+action_dim: 2
 keypoint_dim: 3
 
 env_runner:
