@@ -184,24 +184,23 @@ if __name__ == "__main__":
         data = root.create_group('data')
 
         total_timesteps = 0
-        ee_dim = 4
-        obs_dim = 10
-        keypoint_dim = 3
+        ee_dim = 4 - len(constant_indexes)
+        obs_dim = len(demo_trajectories_for_act[0].obs[0])
+        keypoint_dim = len(demo_trajectories_for_act[0].keypoint[0])
+        print("obs_dim: ", obs_dim, " keypoint_dim: ", keypoint_dim, " ee_dim: ", ee_dim)
         # Count total number of timesteps
         for traj in demo_trajectories_for_act:
             total_timesteps += len(traj.obs) - 1
         # Count total number of episodes
         n_episodes = len(demo_trajectories_for_act)
 
-        action = data.create_dataset('action', shape=(total_timesteps, ee_dim-len(constant_indexes)), chunks=(201, ee_dim), dtype='f8')
+        action = data.create_dataset('action', shape=(total_timesteps, ee_dim), chunks=(201, ee_dim + len(constant_indexes)), dtype='f8')
         low_dim = data.create_dataset('keypoint', shape=(total_timesteps, n_obj, keypoint_dim), chunks=(201, n_obj, keypoint_dim),
                                     dtype='f8')
         state = data.create_dataset('state', shape=(total_timesteps, obs_dim), chunks=(201, obs_dim), dtype='f8')
 
         meta = root.create_group('meta')
         episodes_end = meta.create_dataset('episode_ends', shape=(n_episodes), chunks=(201), dtype='i8')
-        print("obs_dim", obs_dim)
-
         data_cursor = 0
         print("Num of trajectories: ", len(demo_trajectories_for_act))
         # Create a Zarr group for each trajectory
@@ -210,15 +209,21 @@ if __name__ == "__main__":
             #root = zarr.group(store=zarr.DirectoryStore(save_dir + str(i)))
 
             # Create a Zlib compressor
-            #compressor = numcodecs.Zlib(level=1)    
+            #compressor = numcodecs.Zlib(level=1) 
+            keypoint_save = None
             for i in range(len(traj.obs)-1):#
                 #print(data_cursor)
                 # Set the data for the current timestep
                 if args.filter_actions:
-                    action[data_cursor] = traj.acts[i][[i for i in range(ee_dim) if i not in constant_indexes]]
+                    action[data_cursor] = traj.acts[i][[i for i in range(ee_dim + len(constant_indexes)) if i not in constant_indexes]]
                 else:
                     action[data_cursor] = traj.acts[i]
-                low_dim[data_cursor] = [traj.keypoint[i]]
+                try:
+                    low_dim[data_cursor] = [traj.keypoint[i]]
+                    keypoint_save = [traj.keypoint[i-1]]
+                except:
+                    low_dim[data_cursor] = keypoint_save
+                
                 state[data_cursor] = traj.obs[i]
                 # If shape[0] of obs is not 15 then print the shape
                 data_cursor += 1

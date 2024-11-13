@@ -13,7 +13,7 @@ def to_datestring(unixtime: int, format='%Y-%m-%d_%H:%M:%S'):
 	return datetime.utcfromtimestamp(unixtime).strftime(format)
 
 class RecordDemos(gym.Wrapper):
-    def __init__(self, env, args):
+    def __init__(self, env, args, randomize=True):
         # Run super method
         super().__init__(env=env)
         self.env = env
@@ -33,6 +33,7 @@ class RecordDemos(gym.Wrapper):
         self.obj_to_pick = 'cube1_main'
         self.place_to_drop = 'cube2_main'
         self.count_step = 0
+        self.randomize = randomize
 
         # Environment parameters
         self.goal_mapping = {'cube1': 0, 'cube2': 1, 'cube3': 2, 'peg1': 3, 'peg2': 4, 'peg3': 5}
@@ -52,39 +53,73 @@ class RecordDemos(gym.Wrapper):
         self.symbolic_buffer = list()
         self.data_buffer = dict()
 
+        self.counter_peg = 0
+        self.counter_cube = 0
+        self.counter_demos = min(self.counter_peg, self.counter_cube)
+
+    def cap(self, eps, max_val=0.07, min_val=0.01):
+        # If the displacement is greater than the max value, cap it
+        if np.linalg.norm(eps) > max_val:
+            eps = eps / np.linalg.norm(eps) * max_val
+        # If the displacement is smaller than the min value, cap it
+        if np.linalg.norm(eps) < min_val:
+            eps = eps / np.linalg.norm(eps) * min_val
+        return eps
+
+
     def pick_reset(self, obs):
         """
         Resets the environment to a state where the gripper is holding the object
         """
         state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
         self.state_memory = state
+        print("\n\n\t\t---------------------PICK GOAL IS: ", self.env.goal)
+        print("\n\n")
+
+        goal_pos = self.env.sim.data.body_xpos[self.obj_mapping[self.env.goal]][:3]
+        goal_quat = self.env.sim.data.body_xquat[self.obj_mapping[self.env.goal]]
+
+        self.keypoint = np.concatenate([goal_pos, goal_quat])
+
+        # Moving gripper to the front
+        #print("Moving gripper to the front...")
+        for _ in range(np.random.randint(0, 50)):
+            action = np.asarray([0.5,0,0,0])
+            action = action * 1000
+            next_obs, _, _, _, _  = self.env.step(action)
+            self.env.render() if self.render_init else None
 
         # Moving randomly 0 to 200 steps
-        for k in range(np.random.randint(1, 200)):
+        for k in range(np.random.randint(1, 100)):
             generate_random_3d_action = np.random.uniform(-0.5, 0.5, 3)
             action = np.concatenate([generate_random_3d_action, [0]])
+            action = action * 1000
             obs,_,_,_,_ = self.env.step(action)
             self.env.render() if self.render_init else None
 
         self.reset_step_count = 0
         #print("Moving up...")
         #print(len(obs))
-        for _ in range(5):
-            action = [0,0,1,0]
-            next_obs, _, _, _, _  = self.env.step(action)
-            next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.env.render() if self.render_init else None
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
-            if self.state_memory is None:
-                return False, obs
-            obs, state = next_obs, next_state
+        # for _ in range(np.random.randint(4, 15)):
+        #     action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([np.random.normal(0, 0.2, 3), [0]])
+        #     action = 5*self.cap(action)
+        #     action = action * 1000
+        #     next_obs, _, _, _, _  = self.env.step(action)
+        #     next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+        #     self.env.render() if self.render_init else None
+        #     self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
+        #     if self.state_memory is None:
+        #         return False, obs
+        #     obs, state = next_obs, next_state
 
         #print("Moving gripper over object...")
         while not state['over(gripper,{})'.format(self.obj_to_pick)]:
             gripper_pos = np.asarray(self.env.sim.data.body_xpos[self.gripper_body])
             object_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]])
             dist_xy_plan = object_pos[:2] - gripper_pos[:2]
-            action = 5*np.concatenate([dist_xy_plan, [0, 0]])
+            dist_xy_plan = self.cap(dist_xy_plan)
+            action = 5*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 5*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.5*np.linalg.norm(dist_xy_plan), 3), [0]])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -100,7 +135,8 @@ class RecordDemos(gym.Wrapper):
 
         #print("Opening gripper...")
         while not state['open_gripper(gripper)']:
-            action = [0,0,0,-0.1]
+            action = np.asarray([0,0,0,1])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -119,7 +155,9 @@ class RecordDemos(gym.Wrapper):
             gripper_pos = np.asarray(self.env.sim.data.body_xpos[self.gripper_body])
             object_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]])
             dist_z_axis = [object_pos[2] - gripper_pos[2]]
-            action = 5*np.concatenate([[0, 0], dist_z_axis, [0]])
+            dist_z_axis = self.cap(dist_z_axis)
+            action = 5*np.concatenate([[0, 0], dist_z_axis, [0]]) if not(self.randomize) else 5*np.concatenate([[0, 0], dist_z_axis, [0]]) + np.concatenate([[0, 0], np.random.normal(0, 0.5*np.linalg.norm(dist_z_axis), 1), [0]])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -135,7 +173,8 @@ class RecordDemos(gym.Wrapper):
 
         #print("Closing gripper...")
         while not state['grasped({})'.format(self.obj_to_pick)]:
-            action = [0,0,0,0.1]
+            action = np.asarray([0,0,0,-1])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
@@ -149,13 +188,41 @@ class RecordDemos(gym.Wrapper):
         self.reset_step_count = 0
         self.env.time_step = 0
 
+        return True, obs
+
+    def drop_reset(self, obs):
+        """
+        Resets the environment to a state where the gripper is holding the object
+        """
+        state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+        print("\n\n\t\t---------------------DROP GOAL IS: ", self.env.goal)
+        save_goal = copy.deepcopy(self.env.goal)
+        print("\n\n")
+
+        self.reset_step_count = 0
+
+        action_step1 = "place"
+        action_step2 = "place"
+
+        goal_pos = self.env.sim.data.body_xpos[self.obj_mapping[self.env.goal]][:3]
+        if 'peg' in self.env.goal:
+            #action_step = "place_peg"
+            goal_pos = self.env.sim.data.body_xpos[self.obj_mapping[self.env.goal]][:3] - np.array([0.1, 0.04, 0])
+        else:
+            #action_step = "place_cube"
+            goal_pos = self.env.sim.data.body_xpos[self.obj_mapping[self.env.goal]][:3]
+        goal_quat = self.env.sim.data.body_xquat[self.obj_mapping[self.env.goal]]
+        self.keypoint = np.concatenate([goal_pos, goal_quat])
+
         #print("Lifting object...")
         while not state['picked_up({})'.format(self.obj_to_pick)]:
-            action = [0,0,0.4,0]
+            action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([np.random.normal(0, 0.1, 3), [0]])
+            action = 5*self.cap(action)
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step1)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -165,22 +232,6 @@ class RecordDemos(gym.Wrapper):
         self.reset_step_count = 0
         self.env.time_step = 0
 
-        return True, obs
-
-    def drop_reset(self, obs):
-        """
-        Resets the environment to a state where the gripper is holding the object
-        """
-        state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-
-        self.reset_step_count = 0
-        # Moving randomly 0 to 200 steps
-        for k in range(np.random.randint(1, 200)):
-            generate_random_3d_action = np.random.uniform(-0.5, 0.5, 3)
-            action = np.concatenate([generate_random_3d_action, [0]])
-            obs,_,_,_,_ = self.env.step(action)
-            self.env.render() if self.render_init else None
-
         #print("Moving gripper over place to drop...")
         while not state['over(gripper,{})'.format(self.place_to_drop)]:
             gripper_pos = np.asarray(self.env.sim.data.body_xpos[self.gripper_body])
@@ -189,11 +240,13 @@ class RecordDemos(gym.Wrapper):
             else:
                 object_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]])
             dist_xy_plan = object_pos[:2] - gripper_pos[:2]
-            action = 5*np.concatenate([dist_xy_plan, [0, 0]])
+            dist_xy_plan = self.cap(dist_xy_plan)
+            action = 5*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 5*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.5*np.linalg.norm(dist_xy_plan), 3), [0]])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="place")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step1)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -209,11 +262,13 @@ class RecordDemos(gym.Wrapper):
             object_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]])
             place_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]])
             dist_z_axis = [- (object_pos[2] - place_pos[2])]
-            action = 5*np.concatenate([[0, 0], dist_z_axis, [0]])
+            dist_z_axis = self.cap(dist_z_axis)
+            action = 5*np.concatenate([[0, 0], dist_z_axis, [0]]) if not(self.randomize) else 5*np.concatenate([[0, 0], dist_z_axis, [0]]) + np.concatenate([[0, 0], np.random.normal(0, 0.5*np.linalg.norm(dist_z_axis), 1), [0]])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="place")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step2)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -224,12 +279,13 @@ class RecordDemos(gym.Wrapper):
         self.env.time_step = 0
 
         #print("dropping object...")
-        while state['grasped({})'.format(self.obj_to_pick)]:
-            action = [0,0,0,-0.1]
+        while not(state['open_gripper(gripper)']):#state['grasped({})'.format(self.obj_to_pick)]:
+            action = np.asarray([0,0,0,1])
+            action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="place")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step2)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -240,15 +296,17 @@ class RecordDemos(gym.Wrapper):
         self.env.time_step = 0
 
         #print("Moving up...")
-        for _ in range(5):
-            action = [0,0,1,0]
-            next_obs, _, _, _, _  = self.env.step(action)
-            next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.env.render() if self.render_init else None
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="place")
-            if self.state_memory is None:
-                return False, obs
-            obs, state = next_obs, next_state
+        # for _ in range(np.random.randint(4, 15)):
+        #     action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([[0, 0], np.random.normal(0, 0.2, 1), [0]])
+        #     action = 5*self.cap(action)
+        #     action = action * 1000
+        #     next_obs, _, _, _, _  = self.env.step(action)
+        #     next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+        #     self.env.render() if self.render_init else None
+        #     self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step2)
+        #     if self.state_memory is None:
+        #         return False, obs
+        #     obs, state = next_obs, next_state
 
         return True, obs
 
@@ -260,7 +318,6 @@ class RecordDemos(gym.Wrapper):
             obs, _ = self.env.reset()
         except:
             obs = self.env.reset()
-        print("OBS: ", obs)
         self.sample_task()
         self.sim.forward()
         return obs
@@ -268,10 +325,16 @@ class RecordDemos(gym.Wrapper):
     def next_episode(self):
         # Data buffer saves a tuple of (trajectory[obs, action, next_obs, done, reward], symbolic trajectory[state, "MOVE", next_state], task)
         for step in self.action_steps:
-            if step not in self.data_buffer.keys():
-                self.data_buffer[step] = [(self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop))]
-            else:
-                self.data_buffer[step].append((self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)))
+            if step in self.episode_buffer.keys():
+                if step not in self.data_buffer.keys():
+                    self.data_buffer[step] = [(self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop))]
+                else:
+                    self.data_buffer[step].append((self.episode_buffer[step], self.symbolic_buffer, "on({},{})".format(self.obj_to_pick, self.place_to_drop)))
+                if 'peg' in step:
+                    self.counter_peg += 1
+                elif 'cube' in step:
+                    self.counter_cube += 1
+        self.counter_demos = min(self.counter_peg, self.counter_cube)
         self.save_buffer(self.data_buffer, self.args.traces)
         obs = self.reset()
         return obs
@@ -283,27 +346,54 @@ class RecordDemos(gym.Wrapper):
         done_drop, obs = self.drop_reset(obs)
         return done_drop
 
+    def obs_mapping(self, obs, action_step="trace"):
+        index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (3)}
+        trace_obs_list = ["gripper_pos", "aperture", "place_to_drop_pos"]
+        pick_obs_list = ["gripper_pos", "aperture", "place_to_drop_pos"]
+        drop_obs_list = ["gripper_pos", "aperture", "place_to_drop_pos"]
+
+        obs = np.array([])
+        if action_step == "trace":
+            for key in trace_obs_list:
+                obs = np.concatenate([obs, obs[index_obs[key][0]:index_obs[key][1]]])
+        elif action_step == "pick":
+            for key in pick_obs_list:
+                obs = np.concatenate([obs, obs[index_obs[key][0]:index_obs[key][1]]])
+        elif action_step == "place":
+            for key in drop_obs_list:
+                obs = np.concatenate([obs, obs[index_obs[key][0]:index_obs[key][1]]])
+        return obs
+    
+    def keypoint_mapping(self, obs, action_step="trace"):
+        index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z:": (9,10), "place_to_drop_z": (6,7)}
+        trace_key = "obj_to_pick_pos"
+        pick_key = "obj_to_pick_pos"
+        drop_key = "obj_to_pick_pos"
+
+        if action_step == "trace":
+            keypoint = obs[index_obs[trace_key][0]:index_obs[trace_key][1]]
+        elif action_step == "pick":
+            keypoint = obs[index_obs[pick_key][0]:index_obs[pick_key][1]]
+        elif action_step == "place":
+            keypoint = obs[index_obs[drop_key][0]:index_obs[drop_key][1]]
+        return keypoint
+            
     def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="trace", reward=-1.0, done=False, info=None):
-        # Step through the simulation and render
-        # if "pick" in action_step:
-        #     goal = self.goal_mapping[self.obj_to_pick]
-        #     goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
-        # if "drop" in action_step:
-        #     goal = self.goal_mapping[self.place_to_drop]
-        #     if 'cube' in self.place_to_drop:
-        #         goal_location = self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]][:3]
-        #     else:
-        #         goal_location = self.area_pos[self.place_to_drop][:3]
-        # replace goal with the object's array of x, y, z location
-        #obs = np.concatenate((obs, goal_location))
-        #next_obs = np.concatenate((next_obs, goal_location))
+        # keypoint = last 3 values of obs
+        keypoint = self.keypoint_mapping(obs, action_step)
+        #print("Key point: ", keypoint, " Obs: ", obs)
+        obs = self.obs_mapping(obs, action_step)
         if self.args.goal_env:
             desired_goal = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
             achieved_goal = self.env.sim.data.body_xpos[self.gripper_body][:3]
             transition = (obs, action, next_obs, reward, done, desired_goal, achieved_goal)
+        elif self.args.keypoint:
+            transition = (obs, action, next_obs, keypoint, reward, done)
         else:
             #print(len(obs), len(action), len(next_obs), reward, done)
             transition = (obs, action, next_obs, reward, done)
+        #if obs.shape[0] != 15:
+            #print("Obs shape: ", obs.shape)
         if not(self.args.split_action):
             action_step = 'trace'
         if action_step not in self.action_steps:
@@ -389,6 +479,8 @@ class RecordDemos(gym.Wrapper):
     def save_buffer(self, data_buffer, dir_path):
         # Decompose the data buffer into action steps
         for step in self.action_steps:
+            if step not in data_buffer.keys():
+                continue
             # Convert the data buffer to bytes
             data_bytes = pickle.dumps(data_buffer[step])
             file_path = dir_path + step + '.zip'
@@ -404,12 +496,13 @@ if __name__ == "__main__":
     parser.add_argument('--experiment', type=str, default='demo', choices=['demo'], 
                         help='Name of the experiment. Used to name the log and model directories. Augmented means that the observations are augmented with the detector observation.')
     parser.add_argument('--data_folder', type=str, default='./data/', help='Path to the data folder')
-    parser.add_argument('--episodes', type=int, default=int(200), help='Number of episodes to train for')
+    parser.add_argument('--episodes', type=int, default=int(300), help='Number of episodes to train for')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
     parser.add_argument('--render', action='store_true', help='Render the initial state')
-    parser.add_argument('--split_action', action='store_true', help='Split the MOVE action into reach_pick, pick, reach_drop, drop')
+    parser.add_argument('--split_action', action='store_true', help='Split the MOVE action into pick, pick, drop, drop')
     parser.add_argument('--goal_env', action='store_true', help='Use the goal environment')
+    parser.add_argument('--keypoint', action='store_true', help='Store the keypoint')
 
     args = parser.parse_args()
     # Set the random seed
@@ -444,7 +537,7 @@ if __name__ == "__main__":
         has_offscreen_renderer=True,
         horizon=100000000,
         use_camera_obs=False,
-        #render_camera="agentview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+        render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=True,
     )
 
@@ -461,7 +554,7 @@ if __name__ == "__main__":
     done = False
     num_recorder_eps = 0
     episode = 0
-    while num_recorder_eps < args.episodes:
+    while num_recorder_eps < args.episodes: #env.counter_demos < args.episodes: #num_recorder_eps < args.episodes:
         print("Episode: {}".format(episode+1))
         keys = list(env.data_buffer.keys())
         if len(keys) > 0:

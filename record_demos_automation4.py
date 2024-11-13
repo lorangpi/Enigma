@@ -100,17 +100,17 @@ class RecordDemos(gym.Wrapper):
         self.reset_step_count = 0
         #print("Moving up...")
         #print(len(obs))
-        for _ in range(np.random.randint(4, 15)):
-            action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([np.random.normal(0, 0.2, 3), [0]])
-            action = 5*self.cap(action)
-            action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
-            next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.env.render() if self.render_init else None
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="reach_pick")
-            if self.state_memory is None:
-                return False, obs
-            obs, state = next_obs, next_state
+        # for _ in range(np.random.randint(4, 15)):
+        #     action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([np.random.normal(0, 0.2, 3), [0]])
+        #     action = 5*self.cap(action)
+        #     action = action * 1000
+        #     next_obs, _, _, _, _  = self.env.step(action)
+        #     next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+        #     self.env.render() if self.render_init else None
+        #     self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="reach_pick")
+        #     if self.state_memory is None:
+        #         return False, obs
+        #     obs, state = next_obs, next_state
 
         #print("Moving gripper over object...")
         while not state['over(gripper,{})'.format(self.obj_to_pick)]:
@@ -295,39 +295,18 @@ class RecordDemos(gym.Wrapper):
         self.reset_step_count = 0
         self.env.time_step = 0
 
-        gripper_pos = np.asarray(self.env.sim.data.body_xpos[self.gripper_body][:3])
-        print(self.env.goal)
-        if 'peg' in save_goal:
-            #peg_pos = self.env.env.sim.data.body_xpos[self.obj_mapping[save_goal]][:3]
-            peg_pos = obs[:3]
-            distance_ee_peg = np.linalg.norm(gripper_pos - peg_pos)
-            print("Pos of peg: ", peg_pos)
-            print("Pos of end-effector: ", gripper_pos)
-            print("Vector between end-effector and peg: ", gripper_pos - peg_pos)
-            print("Distance between end-effector and peg: ", distance_ee_peg)
-            print()
-        else:
-            #cube_pos = self.env.sim.data.body_xpos[self.obj_mapping[save_goal]][:3]
-            cube_pos = obs[:3]
-            distance_ee_cube = np.linalg.norm(gripper_pos - cube_pos)
-            print("Pos of cube: ", cube_pos)
-            print("Pos of end-effector: ", gripper_pos)
-            print("Vector between end-effector and cube: ", gripper_pos - cube_pos)
-            print("Distance between end-effector and cube: ", distance_ee_cube)
-            print()
-
         #print("Moving up...")
-        for _ in range(np.random.randint(4, 15)):
-            action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([[0, 0], np.random.normal(0, 0.2, 1), [0]])
-            action = 5*self.cap(action)
-            action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
-            next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.env.render() if self.render_init else None
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step2)
-            if self.state_memory is None:
-                return False, obs
-            obs, state = next_obs, next_state
+        # for _ in range(np.random.randint(4, 15)):
+        #     action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([[0, 0], np.random.normal(0, 0.2, 1), [0]])
+        #     action = 5*self.cap(action)
+        #     action = action * 1000
+        #     next_obs, _, _, _, _  = self.env.step(action)
+        #     next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+        #     self.env.render() if self.render_init else None
+        #     self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step2)
+        #     if self.state_memory is None:
+        #         return False, obs
+        #     obs, state = next_obs, next_state
 
         return True, obs
 
@@ -367,10 +346,60 @@ class RecordDemos(gym.Wrapper):
         done_drop, obs = self.drop_reset(obs)
         return done_drop
 
+    def obs_mapping(self, obs, action_step="trace"):
+        index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3)}
+        trace_obs_list = ["gripper_pos", "aperture", "place_to_drop_pos"]
+        reach_pick_obs_list = ["gripper_pos"]
+        pick_obs_list = ["gripper_z", "aperture"]
+        reach_drop_obs_list = ["gripper_pos"]
+        drop_obs_list = ["gripper_z", "aperture"]
+
+        oracle = np.array([])
+        if action_step == "trace":
+            for key in trace_obs_list:
+                oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
+        elif action_step == "reach_pick":
+            for key in reach_pick_obs_list:
+                oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
+        elif action_step == "pick":
+            for key in pick_obs_list:
+                oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
+        elif action_step == "reach_place":
+            for key in reach_drop_obs_list:
+                oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
+        elif action_step == "place":
+            for key in drop_obs_list:
+                oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
+        return oracle
+    
+    def keypoint_mapping(self, obs, action_step="trace"):
+        index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z": (9,10), "place_to_drop_z": (6,7)}
+        trace_key = "obj_to_pick_pos"
+        reach_pick_key = "obj_to_pick_pos"
+        pick_key = "obj_to_pick_z"
+        reach_drop_key = "place_to_drop_pos"
+        drop_key = "place_to_drop_z"
+
+        if action_step == "trace":
+            keypoint = obs[index_obs[trace_key][0]:index_obs[trace_key][1]]
+        elif action_step == "reach_pick":
+            keypoint = obs[index_obs[reach_pick_key][0]:index_obs[reach_pick_key][1]]
+        elif action_step == "pick":
+            keypoint = obs[index_obs[pick_key][0]:index_obs[pick_key][1]]
+        elif action_step == "reach_place":
+            keypoint = obs[index_obs[reach_drop_key][0]:index_obs[reach_drop_key][1]]
+        elif action_step == "place":
+            keypoint = obs[index_obs[drop_key][0]:index_obs[drop_key][1]]
+        return keypoint
+            
     def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="trace", reward=-1.0, done=False, info=None):
         # keypoint = last 3 values of obs
-        keypoint = obs[-3:]
+        if not(self.args.split_action):
+            action_step = 'trace'
+        keypoint = self.keypoint_mapping(obs, action_step)
         #print("Key point: ", keypoint, " Obs: ", obs)
+        obs = self.obs_mapping(obs, action_step)
+        #print("Action step: ", action_step, "Obs shape: ", obs.shape, "Key point shape: ", keypoint.shape)
         if self.args.goal_env:
             desired_goal = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]
             achieved_goal = self.env.sim.data.body_xpos[self.gripper_body][:3]
@@ -382,8 +411,6 @@ class RecordDemos(gym.Wrapper):
             transition = (obs, action, next_obs, reward, done)
         #if obs.shape[0] != 15:
             #print("Obs shape: ", obs.shape)
-        if not(self.args.split_action):
-            action_step = 'trace'
         if action_step not in self.action_steps:
             self.action_steps.append(action_step)
         if action_step not in self.episode_buffer.keys():

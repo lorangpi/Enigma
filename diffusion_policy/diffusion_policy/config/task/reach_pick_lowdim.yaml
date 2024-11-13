@@ -1,6 +1,6 @@
 name: reach_pick_lowdim
 
-obs_dim: 13
+obs_dim: 6
 action_dim: 3
 keypoint_dim: 3
 

@@ -1,6 +1,6 @@
 name: place_lowdim
 
-obs_dim: 13
+obs_dim: 10
 action_dim: 4
 keypoint_dim: 3
 

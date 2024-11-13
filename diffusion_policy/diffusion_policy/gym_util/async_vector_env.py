@@ -557,6 +557,8 @@ class AsyncVectorEnv(VectorEnv):
     def render(self, *args, **kwargs):
         return self.call('render', *args, **kwargs)
 
+    def set_task(self, task):
+        self.call_each('set_task', kwargs_list=[{'task': task}]*self.num_envs)
 
 
 def _worker(index, env_fn, pipe, parent_pipe, shared_memory, error_queue):

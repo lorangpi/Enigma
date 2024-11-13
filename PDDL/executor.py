@@ -253,8 +253,6 @@ class Executor_Diffusion(Executor):
         step_executor = 0
         done = False
         success = False 
-        reached_success = False
-        extra_steps = 0
         while not done:
             # create obs dict
             np_obs_dict = {
@@ -295,14 +293,8 @@ class Executor_Diffusion(Executor):
             success = self.Beta(state, symgoal)
             success = success or info[0]['is_success'][-1]
             if success:
-                reached_success = True
-                done = True
-            if reached_success:
-                extra_steps += 1
-            if extra_steps > 5:
-                print("\tSuccess: Task completed in {} steps\n".format(step_executor))
                 done = True
             if step_executor > horizon:
                 print("Reached executor horizon")
                 done = True 
-        return obs, reached_success
+        return obs, success
