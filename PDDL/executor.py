@@ -313,7 +313,8 @@ class Executor_Diffusion(Executor):
         return keypoint
 
     def prepare_obs(self, obs, action_step="PickPlace"):
-        obs_dim = {"PickPlace": 10, "ReachPick": 6, "Grasp": 3, "ReachDrop": 6, "Drop": 3}
+        #obs_dim = {"PickPlace": 10, "ReachPick": 6, "Grasp": 3, "ReachDrop": 6, "Drop": 3}
+        obs_dim = {"PickPlace": 7, "ReachPick": 3, "Grasp": 2, "ReachDrop": 3, "Drop": 2}
         if action_step not in obs_dim.keys():
             return obs
         returned_obs = np.zeros((obs.shape[0], len(obs[0]), obs_dim[action_step]))
@@ -322,11 +323,12 @@ class Executor_Diffusion(Executor):
                 obs_step = env_n_obs[i]
                 # Prepare the observation for the policy
                 obs_policy = self.relative_obs_mapping(obs_step, action_step=action_step)
-                keypoint_policy = self.keypoint_mapping(obs_step, action_step=action_step)
-                concatenated_obs = np.concatenate([keypoint_policy, obs_policy], axis=-1)
+                #keypoint_policy = self.keypoint_mapping(obs_step, action_step=action_step)
+                #concatenated_obs = np.concatenate([keypoint_policy, obs_policy], axis=-1)
                 
                 # Resize env_n_obs[i] to match the new shape
-                returned_obs[j][i] = concatenated_obs
+                #returned_obs[j][i] = concatenated_obs
+                returned_obs[j][i] = obs_policy
         #print("Returned obs shape: ", returned_obs.shape)
         #print("Original obs shape: ", obs.shape)
         return returned_obs
