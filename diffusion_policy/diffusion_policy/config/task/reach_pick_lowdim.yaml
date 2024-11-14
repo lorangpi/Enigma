@@ -1,8 +1,8 @@
 name: reach_pick_lowdim
 
-obs_dim: 6
+obs_dim: 3
 action_dim: 3
-keypoint_dim: 3
+keypoint_dim: 0
 
 env_runner:
   _target_: diffusion_policy.env_runner.pick_place_env_runner.PickPlaceEnvRunner

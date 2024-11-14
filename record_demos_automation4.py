@@ -371,6 +371,29 @@ class RecordDemos(gym.Wrapper):
             for key in drop_obs_list:
                 oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
         return oracle
+
+    def relative_obs_mapping(self, obs, action_step="trace"):
+        index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z": (9,10), "place_to_drop_z": (6,7)}
+        # trace_obs_list = obj_to_pick_pos - gripper_pos, aperture, place_to_drop_pos - gripper_pos
+        # reach_pick_obs_list = obj_to_pick_pos - gripper_pos
+        # pick_obs_list = obj_to_pick_z - gripper_z, aperture
+        # reach_drop_obs_list = place_to_drop_pos - gripper_pos
+        # drop_obs_list = place_to_drop_z - gripper_z, aperture
+
+        oracle = np.array([])
+        if action_step == "trace":
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]], obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+        elif action_step == "reach_pick":
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+        elif action_step == "pick":
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+        elif action_step == "reach_place":
+            oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+        elif action_step == "place":
+            oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+        else:
+            oracle = obs
+        return oracle
     
     def keypoint_mapping(self, obs, action_step="trace"):
         index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z": (9,10), "place_to_drop_z": (6,7)}
@@ -398,7 +421,7 @@ class RecordDemos(gym.Wrapper):
             action_step = 'trace'
         keypoint = self.keypoint_mapping(obs, action_step)
         #print("Key point: ", keypoint, " Obs: ", obs)
-        obs = self.obs_mapping(obs, action_step)
+        obs = self.relative_obs_mapping(obs, action_step)
         #print("Action step: ", action_step, "Obs shape: ", obs.shape, "Key point shape: ", keypoint.shape)
         if self.args.goal_env:
             desired_goal = self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]][:3]

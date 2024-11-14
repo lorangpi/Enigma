@@ -208,7 +208,7 @@ class Executor_GAIL(Executor):
         return obs, reached_success
 
 class Executor_Diffusion(Executor):
-    def __init__(self, id, policy, I, Beta, Circumstance=None, basic=False, nulified_action_indexes=[], wrapper=None, horizon=None, device="cpu"):
+    def __init__(self, id, policy, I, Beta, Circumstance=None, basic=False, nulified_action_indexes=[], oracle=False, wrapper=None, horizon=None, device="cpu"):
         super().__init__(id, "RL", I, Beta, Circumstance, basic)
         self.policy = policy
         self.model = None
@@ -216,6 +216,7 @@ class Executor_Diffusion(Executor):
         self.wrapper = wrapper
         self.horizon = horizon
         self.device = device
+        self.oracle = oracle
 
     def load_policy(self):
         path = self.policy
@@ -242,6 +243,94 @@ class Executor_Diffusion(Executor):
         policy.reset()
         self.model = policy
 
+    def obs_mapping(self, obs, action_step="PickPlace"):
+        index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3)}
+        trace_obs_list = ["gripper_pos", "aperture", "place_to_drop_pos"]
+        reach_pick_obs_list = ["gripper_pos"]
+        pick_obs_list = ["gripper_z", "aperture"]
+        reach_drop_obs_list = ["gripper_pos"]
+        drop_obs_list = ["gripper_z", "aperture"]
+
+        oracle = np.array([])
+        if action_step == "PickPlace":
+            for key in trace_obs_list:
+                oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
+        elif action_step == "ReachPick":
+            for key in reach_pick_obs_list:
+                oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
+        elif action_step == "Grasp":
+            for key in pick_obs_list:
+                oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
+        elif action_step == "ReachDrop":
+            for key in reach_drop_obs_list:
+                oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
+        elif action_step == "Drop":
+            for key in drop_obs_list:
+                oracle = np.concatenate([oracle, obs[index_obs[key][0]:index_obs[key][1]]])
+        return oracle
+
+    def relative_obs_mapping(self, obs, action_step="PickPlace"):
+        index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z": (9,10), "place_to_drop_z": (6,7)}
+        # trace_obs_list = obj_to_pick_pos - gripper_pos, aperture, place_to_drop_pos - gripper_pos
+        # reach_pick_obs_list = obj_to_pick_pos - gripper_pos
+        # pick_obs_list = obj_to_pick_z - gripper_z, aperture
+        # reach_drop_obs_list = place_to_drop_pos - gripper_pos
+        # drop_obs_list = place_to_drop_z - gripper_z, aperture
+
+        oracle = np.array([])
+        if action_step == "PickPlace":
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]], obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+        elif action_step == "ReachPick":
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+        elif action_step == "Grasp":
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+        elif action_step == "ReachDrop":
+            oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+        elif action_step == "Drop":
+            oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+        else:
+            oracle = obs
+        return oracle
+
+    def keypoint_mapping(self, obs, action_step="PickPlace"):
+        index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z": (9,10), "place_to_drop_z": (6,7)}
+        trace_key = "obj_to_pick_pos"
+        reach_pick_key = "obj_to_pick_pos"
+        pick_key = "obj_to_pick_z"
+        reach_drop_key = "place_to_drop_pos"
+        drop_key = "place_to_drop_z"
+
+        if action_step == "PickPlace":
+            keypoint = obs[index_obs[trace_key][0]:index_obs[trace_key][1]]
+        elif action_step == "ReachPick":
+            keypoint = obs[index_obs[reach_pick_key][0]:index_obs[reach_pick_key][1]]
+        elif action_step == "Grasp":
+            keypoint = obs[index_obs[pick_key][0]:index_obs[pick_key][1]]
+        elif action_step == "ReachDrop":
+            keypoint = obs[index_obs[reach_drop_key][0]:index_obs[reach_drop_key][1]]
+        elif action_step == "Drop":
+            keypoint = obs[index_obs[drop_key][0]:index_obs[drop_key][1]]
+        return keypoint
+
+    def prepare_obs(self, obs, action_step="PickPlace"):
+        obs_dim = {"PickPlace": 10, "ReachPick": 6, "Grasp": 3, "ReachDrop": 6, "Drop": 3}
+        if action_step not in obs_dim.keys():
+            return obs
+        returned_obs = np.zeros((obs.shape[0], len(obs[0]), obs_dim[action_step]))
+        for j, env_n_obs in enumerate(obs):
+            for i in range(len(env_n_obs)):
+                obs_step = env_n_obs[i]
+                # Prepare the observation for the policy
+                obs_policy = self.relative_obs_mapping(obs_step, action_step=action_step)
+                keypoint_policy = self.keypoint_mapping(obs_step, action_step=action_step)
+                concatenated_obs = np.concatenate([keypoint_policy, obs_policy], axis=-1)
+                
+                # Resize env_n_obs[i] to match the new shape
+                returned_obs[j][i] = concatenated_obs
+        #print("Returned obs shape: ", returned_obs.shape)
+        #print("Original obs shape: ", obs.shape)
+        return returned_obs
+
     def execute(self, env, obs, goal, symgoal, render=False):
         '''
         This method is responsible for executing the policy on the given state. It takes a state as a parameter and returns the action 
@@ -254,6 +343,9 @@ class Executor_Diffusion(Executor):
         done = False
         success = False 
         while not done:
+            # Prepare the observation for the policy
+            if self.oracle:
+                obs = self.prepare_obs(obs, action_step=self.id)
             # create obs dict
             np_obs_dict = {
                 'obs': obs.astype(np.float32)

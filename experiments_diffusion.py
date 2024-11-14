@@ -55,39 +55,48 @@ def termination_indicator(operator):
 
 # Load executors
 reach_pick = Executor_Diffusion(id='ReachPick', 
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
+                         #policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=3450-train_loss=0.028.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
+                         oracle=True,
                          wrapper = ReachPickWrapper,
                          horizon=10)
 grasp = Executor_Diffusion(id='Grasp', 
-                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
+                   #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=5050-train_loss=0.022.ckpt",
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[0, 1],
+                   oracle=True,
                    wrapper = PickWrapper,
                    horizon=10)
 reach_drop = Executor_Diffusion(id='ReachDrop', 
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
+                         #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
+                         policy="/home/lorangpi/Enigma/saved_policies/reach_drop/epoch=7600-train_loss=0.011.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_drop'),
                          nulified_action_indexes=[3],
+                         oracle=True,
                          wrapper = ReachDropWrapper,
-                         horizon=10)
+                         horizon=17)
 drop = Executor_Diffusion(id='Drop', 
-                   policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
+                   #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=5550-train_loss=0.046.ckpt",
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[0, 1],
+                   oracle=True,
                    wrapper = DropWrapper,
                    horizon=10)
 pickplace = Executor_Diffusion(id='PickPlace', 
-                   #policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=0750-train_loss=0.039.ckpt", 
-                   policy="/home/lorangpi/Enigma/saved_policies/epoch=3400-train_loss=0.020.ckpt", 
+                   policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=5900-train_loss=0.010.ckpt", 
+                   #policy="/home/lorangpi/Enigma/saved_policies/epoch=3400-train_loss=0.020.ckpt", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
+                   oracle=True,
                    wrapper = DropWrapper,
                    horizon=100)
 place = Executor_Diffusion(id='Place', 
@@ -105,9 +114,9 @@ pick = Executor_Diffusion(id='Pick',
                    wrapper = DropWrapper,
                    horizon=40)
 
-#Move_action = [reach_pick, grasp, reach_drop, drop]
+Move_action = [reach_pick, grasp, reach_drop, drop]
 #Move_action = [pick, reach_drop, drop]
-Move_action = [pickplace]
+#Move_action = [pickplace]
 
 # Create an env wrapper which transforms the outputs of reset() and step() into gym formats (and not gymnasium formats)
 class GymnasiumToGymWrapper(gym.Env):
@@ -115,7 +124,7 @@ class GymnasiumToGymWrapper(gym.Env):
         self.env = env
         self.action_space = env.action_space
         # set up observation space
-        self.obs_dim = 13
+        self.obs_dim = 10
 
         high = np.inf * np.ones(self.obs_dim)
         low = -high
@@ -123,19 +132,19 @@ class GymnasiumToGymWrapper(gym.Env):
 
     def reset(self):
         obs, info = self.env.reset()
-        keypoint = obs[-3:]#info["keypoint"]#obs[-3:]
-        obs = np.concatenate([
-            keypoint, 
-            obs], axis=-1)
+        #keypoint = obs[-3:]#info["keypoint"]#obs[-3:]
+        #obs = np.concatenate([
+        #    keypoint, 
+        #    obs], axis=-1)
         #obs = np.concatenate([obs, info["keypoint"]])
         return obs
 
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
-        keypoint = obs[-3:]#info["keypoint"]#obs[-3:]
-        obs = np.concatenate([
-            keypoint, 
-            obs], axis=-1)
+        #keypoint = obs[-3:]#info["keypoint"]#obs[-3:]
+        #obs = np.concatenate([
+        #    keypoint, 
+        #    obs], axis=-1)
         return obs, reward, terminated or truncated, info
 
     def render(self, mode='human', *args, **kwargs):
@@ -187,7 +196,7 @@ dummy_env = env_fn()
 
 print(dummy_env.observation_space)
 
-obs_dim = 13
+obs_dim = 10
 high = np.inf * np.ones(obs_dim)
 low = -high
 observation_space = gym.spaces.Box(low, high, dtype=np.float64)
@@ -315,7 +324,7 @@ pick_place_failure = 0
 successful_operations = []
 percentage_advancement = []
 
-def reset_gripper(env, obs):
+def reset_gripper(env):
     print("Resetting gripper")
     # First move up
     for _ in range(5):
@@ -323,15 +332,18 @@ def reset_gripper(env, obs):
         obs, reward, done, info = env.step([[action, action, action, action]])
     # Second move to the initial position
     obs = obs[-1][-1]
-    current_pos = obs[3:6]
+    current_pos = obs[:3]
     delta = reset_gripper_pos - current_pos
+    action = 5*np.array([delta[0], delta[1], delta[2], 0])
     while np.linalg.norm(delta) > 10:
         #print("Curent pos: ", current_pos)
         action = 5*np.array([delta[0], delta[1], delta[2], 0])
+        action = action * 0.9
         obs, reward, done, info = env.step([[action, action, action, action]])
         obs = obs[-1][-1]
-        current_pos = obs[3:6]
+        current_pos = obs[:3]
         delta = reset_gripper_pos - current_pos
+        print(f"Delta: {delta}, Current pos: {current_pos}, Reset pos: {reset_gripper_pos}")
 
 for i in range(100):
     print("Episode: ", i)
@@ -387,7 +399,7 @@ for i in range(100):
                 print("Execution failed.\n")
                 pick_place_failure += 1
                 #break
-        reset_gripper(env, obs[-1][-1])
+        reset_gripper(env)#, obs[-1][-1])
         if not success:
             # Print the number of operators that were successfully executed out of the total number of operators in the plan
             print("--- Object not picked and placed.")

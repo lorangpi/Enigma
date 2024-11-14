@@ -1,8 +1,8 @@
 name: grasp_lowdim
 
-obs_dim: 3
+obs_dim: 2
 action_dim: 2
-keypoint_dim: 1
+keypoint_dim: 0
 
 env_runner:
   _target_: diffusion_policy.env_runner.pick_place_env_runner.PickPlaceEnvRunner
