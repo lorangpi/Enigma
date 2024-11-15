@@ -467,9 +467,18 @@ class RecordDemos(gym.Wrapper):
                         pegs.append(peg)
                     if len(pegs) != len(set(pegs)):
                         return None
+                if self.args.unique:
+                    # Check if the transition is unique
+                    if self.Graph.is_known_edge(state, sym_action, new_state):
+                        print("Already known transition")
+                        return None
+                    else:
+                        print("NEW UNIQUE TRANSITION")
+                        print(env.Graph.state_mapping)
                 self.Graph.learn(state, sym_action, new_state)
                 self.symbolic_buffer.append((state, sym_action, new_state))
                 state = new_state
+
         return state_memory
 
     def switched_graph_state(self, transition, mode='simple'):
@@ -480,36 +489,6 @@ class RecordDemos(gym.Wrapper):
         return False
 
     def sample_task(self):
-    #     # Sample a random task
-    #     valid_task = False
-    #     while not valid_task:
-    #         # Sample a random task, bias towards the least sampled tasks (cf. self.picked and self.placed)
-    #         pick_counts = np.bincount(self.picked, minlength=4)
-    #         place_counts = np.bincount(self.placed, minlength=7)
-    #         pick_weights = 1 / (pick_counts[1:] + 1)  # Add 1 to avoid division by zero
-    #         place_weights = 1 / (place_counts[1:] + 1)
-    #         cube_to_pick = np.random.choice(np.arange(1, 4), p=pick_weights / pick_weights.sum())
-    #         place_to_drop = np.random.choice(np.arange(1, 7), p=place_weights / place_weights.sum())
-    #         pick = cube_to_pick
-    #         place = place_to_drop
-    #         if cube_to_pick >= place_to_drop:
-    #             continue
-    #         if place_to_drop < 4:
-    #             place_to_drop = 'cube{}'.format(place_to_drop)
-    #         else:
-    #             place_to_drop = 'peg{}'.format(place_to_drop - 3)
-    #         cube_to_pick = 'cube{}'.format(cube_to_pick)
-    #         state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-    #         if state['on({},{})'.format(cube_to_pick, place_to_drop)]:
-    #             continue
-    #         if state['clear({})'.format(cube_to_pick)] and state['clear({})'.format(place_to_drop)]:
-    #             valid_task = True
-    #     # print("State: {}".format(state))
-    #     self.picked.append(pick)
-    #     self.placed.append(place)
-    #     # Set the task
-    #     self.obj_to_pick = cube_to_pick
-    #     self.place_to_drop = place_to_drop
         self.obj_to_pick = self.env.obj_to_pick
         self.place_to_drop = self.env.place_to_drop
     #     print("Task: Pick {} and drop it on {}".format(self.obj_to_pick, self.place_to_drop))
@@ -541,6 +520,7 @@ if __name__ == "__main__":
     parser.add_argument('--split_action', action='store_true', help='Split the MOVE action into reach_pick, pick, reach_drop, drop')
     parser.add_argument('--goal_env', action='store_true', help='Use the goal environment')
     parser.add_argument('--keypoint', action='store_true', help='Store the keypoint')
+    parser.add_argument('--unique', action='store_true', help='Unique transitions, 27 possible transitions')
 
     args = parser.parse_args()
     # Set the random seed
@@ -591,13 +571,12 @@ if __name__ == "__main__":
     # Run the environment
     done = False
     num_recorder_eps = 0
-    episode = 0
-    while num_recorder_eps < args.episodes: #env.counter_demos < args.episodes: #num_recorder_eps < args.episodes:
+    episode = 1
+    if args.unique:
+        args.episodes = 27
+    while num_recorder_eps < args.episodes: 
         print("Episode: {}".format(episode+1))
         keys = list(env.data_buffer.keys())
-        if len(keys) > 0:
-            num_recorder_eps = len(env.data_buffer[keys[0]])
-            print("Number of recorded episodes: {}".format(num_recorder_eps))
         done = env.step_episode(obs)
         if done:
             obs = env.next_episode()
@@ -612,7 +591,10 @@ if __name__ == "__main__":
                 obs, _ = env.reset()
             except:
                 obs = env.reset()
-        if episode % 50 == 0:
+        if episode % 27 == 0:
             print("\n Graph mapping: ", env.Graph.state_mapping)
         episode += 1
+        if len(keys) > 0:
+            num_recorder_eps = len(env.data_buffer[keys[0]])
+            print("Number of recorded episodes: {}".format(num_recorder_eps))
     print("\n Graph mapping: ", env.Graph.state_mapping)
