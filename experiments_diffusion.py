@@ -56,7 +56,7 @@ def termination_indicator(operator):
 # Load executors
 reach_pick = Executor_Diffusion(id='ReachPick', 
                          #policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.014.ckpt",
+                         policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
@@ -65,7 +65,7 @@ reach_pick = Executor_Diffusion(id='ReachPick',
                          horizon=10)
 grasp = Executor_Diffusion(id='Grasp', 
                    #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
-                   policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7950-train_loss=0.021.ckpt",
+                   policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[0, 1],
@@ -74,7 +74,7 @@ grasp = Executor_Diffusion(id='Grasp',
                    horizon=10)
 reach_drop = Executor_Diffusion(id='ReachDrop', 
                          #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
-                         policy="/home/lorangpi/Enigma/saved_policies/reach_drop/epoch=7900-train_loss=0.018.ckpt",
+                         policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_drop'),
                          nulified_action_indexes=[3],
@@ -83,7 +83,7 @@ reach_drop = Executor_Diffusion(id='ReachDrop',
                          horizon=17)
 drop = Executor_Diffusion(id='Drop', 
                    #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
-                   policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=6800-train_loss=0.047.ckpt",
+                   policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[0, 1],
@@ -343,7 +343,7 @@ def reset_gripper(env):
         obs = obs[-1][-1]
         current_pos = obs[:3]
         delta = reset_gripper_pos - current_pos
-        print(f"Delta: {delta}, Current pos: {current_pos}, Reset pos: {reset_gripper_pos}")
+        #print(f"Delta: {delta}, Current pos: {current_pos}, Reset pos: {reset_gripper_pos}")
 
 for i in range(100):
     print("Episode: ", i)

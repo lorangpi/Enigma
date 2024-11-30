@@ -132,3 +132,6 @@ imitation_learning/figures/
 imitation_learning/__pycache__/
 
 !diffusion_policy/
+
+# Forklift repo
+forklift_data/

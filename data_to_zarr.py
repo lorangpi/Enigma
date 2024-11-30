@@ -184,7 +184,8 @@ if __name__ == "__main__":
         data = root.create_group('data')
 
         total_timesteps = 0
-        ee_dim = 4 - len(constant_indexes)
+        print(len(constant_indexes))
+        ee_dim = 3 - len(constant_indexes)
         obs_dim = len(demo_trajectories_for_act[0].obs[0])
         keypoint_dim = len(demo_trajectories_for_act[0].keypoint[0])
         print("obs_dim: ", obs_dim, " keypoint_dim: ", keypoint_dim, " ee_dim: ", ee_dim)

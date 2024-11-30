@@ -572,8 +572,6 @@ if __name__ == "__main__":
     done = False
     num_recorder_eps = 0
     episode = 1
-    if args.unique:
-        args.episodes = 27
     while num_recorder_eps < args.episodes: 
         print("Episode: {}".format(episode+1))
         keys = list(env.data_buffer.keys())
