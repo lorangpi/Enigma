@@ -74,16 +74,18 @@ class RecordDemos():
         csv_file = open(self.args.data_folder + bag_name + '.csv', 'r')
         csv_reader = csv.DictReader(csv_file)
 
-        # Read the first row
-        first_row = next(csv_reader)
-        obs = self.get_obs_from_row(first_row)
-        
+        i = 0
         # Loop through the csv file except the first row
         for row in csv_reader:
-            action = self.get_action_from_row(row)
+            if i == 0:
+                obs = self.get_obs_from_row(row)
+                action = self.get_action_from_row(row)
+                i += 1
+                continue
             next_obs = self.get_obs_from_row(row)
             self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
             obs = next_obs
+            action = self.get_action_from_row(row)
         
         # Close the csv file
         csv_file.close()
