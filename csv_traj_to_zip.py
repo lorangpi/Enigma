@@ -28,15 +28,15 @@ class RecordDemos():
         # Access the value of the specified column and convert to float
         pallet_x = float(row['pallet_x'])
         pallet_y = float(row['pallet_y'])
-        pallet_theta = float(row['pallet_theta'])
+        pallet_yaw = float(row['pallet_yaw'])
         crayler_x = float(row['crayler_x'])
         crayler_y = float(row['crayler_y'])
-        crayler_theta = float(row['crayler_theta'])
+        crayler_yaw = float(row['crayler_yaw'])
         forks_shift = float(row['shift_pos'])
 
         relative_x = crayler_x - pallet_x
         relative_y = crayler_y - pallet_y
-        relative_theta = crayler_theta - pallet_theta
+        relative_theta = crayler_yaw - pallet_yaw
         relative_shift = forks_shift
 
         obs = np.array([relative_x, relative_y, relative_theta, relative_shift], dtype=np.float64)
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--experiment', type=str, default='demo', choices=['demo'], 
                         help='Name of the experiment. Used to name the log and model directories. Augmented means that the observations are augmented with the detector observation.')
-    parser.add_argument('--data_folder', type=str, default='./data/', help='Path to the data folder')
+    parser.add_argument('--data_folder', type=str, default='./forklift_data/csv/', help='Path to the data folder')
     parser.add_argument('--episodes', type=int, default=int(200), help='Number of episodes to train for')
     parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
     parser.add_argument('--split_action', action='store_true', help='Split the MOVE action into reach_pick, pick, reach_drop, drop')
