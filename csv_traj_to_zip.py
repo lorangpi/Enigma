@@ -39,7 +39,11 @@ class RecordDemos():
         relative_theta = crayler_yaw - pallet_yaw
         relative_shift = forks_shift
 
-        obs = np.array([relative_x, relative_y, relative_theta, relative_shift], dtype=np.float64)
+        drive_vel = float(row['c_drive_vel']) 
+        #steer_pos = float(row['c_steer_pos']) 
+        steer_vel = float(row['c_steer_vel'])
+
+        obs = np.array([relative_x, relative_y, relative_theta, relative_shift, drive_vel, steer_vel], dtype=np.float64)
 
         return obs
 
@@ -86,6 +90,7 @@ class RecordDemos():
             self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
             obs = next_obs
             action = self.get_action_from_row(row)
+        self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
         
         # Close the csv file
         csv_file.close()

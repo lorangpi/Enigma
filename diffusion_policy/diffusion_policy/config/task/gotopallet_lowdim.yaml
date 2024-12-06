@@ -1,6 +1,6 @@
 name: gotopallet_lowdim
 
-obs_dim: 4
+obs_dim: 6
 action_dim: 3
 keypoint_dim: 0
 
