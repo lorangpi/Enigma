@@ -34,9 +34,9 @@ class RecordDemos():
         crayler_yaw = float(row['crayler_yaw'])
         
 
-        relative_x = crayler_x - pallet_x
-        relative_y = crayler_y - pallet_y
-        relative_theta = crayler_yaw - pallet_yaw
+        #relative_x = crayler_x - pallet_x
+        #relative_y = crayler_y - pallet_y
+        #relative_theta = crayler_yaw - pallet_yaw
 
         drive_vel = float(row['c_drive_vel']) 
         steer_vel = float(row['steering_rate'])
@@ -44,7 +44,8 @@ class RecordDemos():
         forks_shift = float(row['shift_pos'])
 
 
-        obs = np.array([relative_x, relative_y, relative_theta, forks_shift, drive_vel, steer_vel, steer_pos], dtype=np.float64)
+        #obs = np.array([relative_x, relative_y, relative_theta, forks_shift, drive_vel, steer_vel, steer_pos], dtype=np.float64)
+        obs = np.array([pallet_x, pallet_y, pallet_yaw, crayler_x, crayler_y, crayler_yaw, forks_shift, drive_vel, steer_vel, steer_pos], dtype=np.float64)
 
         return obs
 
@@ -188,7 +189,11 @@ if __name__ == "__main__":
     while num_recorder_eps < args.episodes: 
         print("Episode: {}".format(episode+1))
         keys = list(sample.data_buffer.keys())
-        done = sample.read_csv_row(bag_name="bag_{}data".format(episode))
+        try:
+            done = sample.read_csv_row(bag_name="bag_{}data".format(episode))
+        except:
+            print("Error reading csv file")
+            done = True
         if done:
             sample.next_trajectory()
         else:
