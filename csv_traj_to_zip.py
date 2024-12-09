@@ -29,14 +29,14 @@ class RecordDemos():
         pallet_x = float(row['pallet_x'])
         pallet_y = float(row['pallet_y'])
         pallet_yaw = float(row['pallet_yaw'])
-        crayler_x = float(row['crayler_x'])
-        crayler_y = float(row['crayler_y'])
-        crayler_yaw = float(row['crayler_yaw'])
+        crayler_x = float(row['fork_x'])
+        crayler_y = float(row['fork_y'])
+        crayler_yaw = float(row['fork_yaw'])
         
 
-        #relative_x = crayler_x - pallet_x
-        #relative_y = crayler_y - pallet_y
-        #relative_theta = crayler_yaw - pallet_yaw
+        relative_x = crayler_x - pallet_x
+        relative_y = crayler_y - pallet_y
+        relative_theta = crayler_yaw - pallet_yaw
 
         drive_vel = float(row['c_drive_vel']) 
         steer_vel = float(row['steering_rate'])
@@ -44,8 +44,8 @@ class RecordDemos():
         forks_shift = float(row['shift_pos'])
 
 
-        #obs = np.array([relative_x, relative_y, relative_theta, forks_shift, drive_vel, steer_vel, steer_pos], dtype=np.float64)
-        obs = np.array([pallet_x, pallet_y, pallet_yaw, crayler_x, crayler_y, crayler_yaw, forks_shift, drive_vel, steer_vel, steer_pos], dtype=np.float64)
+        obs = np.array([relative_x, relative_y, relative_theta, forks_shift, drive_vel, steer_vel, steer_pos], dtype=np.float64)
+        #obs = np.array([pallet_x, pallet_y, pallet_yaw, crayler_x, crayler_y, crayler_yaw, forks_shift, drive_vel, steer_vel, steer_pos], dtype=np.float64)
 
         return obs
 
