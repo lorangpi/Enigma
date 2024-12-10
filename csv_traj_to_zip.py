@@ -26,17 +26,21 @@ class RecordDemos():
         Returns the step data from the row
         """
         # Access the value of the specified column and convert to float
-        pallet_x = float(row['pallet_x'])
-        pallet_y = float(row['pallet_y'])
-        pallet_yaw = float(row['pallet_yaw'])
-        crayler_x = float(row['fork_x'])
-        crayler_y = float(row['fork_y'])
-        crayler_yaw = float(row['fork_yaw'])
+        # pallet_x = float(row['pallet_x'])
+        # pallet_y = float(row['pallet_y'])
+        # pallet_yaw = float(row['pallet_yaw'])
+        # crayler_x = float(row['fork_x'])
+        # crayler_y = float(row['fork_y'])
+        # crayler_yaw = float(row['fork_yaw'])
         
 
-        relative_x = crayler_x - pallet_x
-        relative_y = crayler_y - pallet_y
-        relative_theta = crayler_yaw - pallet_yaw
+        # relative_x = crayler_x - pallet_x
+        # relative_y = crayler_y - pallet_y
+        # relative_theta = crayler_yaw - pallet_yaw
+
+        relative_x = float(row['x_error'])
+        relative_y = float(row['y_error'])
+        relative_theta = float(row['theta_error'])
 
         drive_vel = float(row['c_drive_vel']) 
         steer_vel = float(row['steering_rate'])
@@ -89,7 +93,8 @@ class RecordDemos():
                 i += 1
                 continue
             next_obs = self.get_obs_from_row(row)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
+            if not(float(row['x_error']) == 0 or float(row['y_error']) == 0 or float(row['theta_error']) == 0):
+                self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
             obs = next_obs
             action = self.get_action_from_row(row)
         self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
