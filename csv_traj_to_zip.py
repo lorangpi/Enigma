@@ -38,9 +38,15 @@ class RecordDemos():
         # relative_y = crayler_y - pallet_y
         # relative_theta = crayler_yaw - pallet_yaw
 
-        relative_x = float(row['x_error'])
-        relative_y = float(row['y_error'])
-        relative_theta = float(row['theta_error'])
+        #relative_x = float(row['x_error'])
+        #relative_y = float(row['y_error'])
+        #relative_theta = float(row['theta_error'])
+
+        relative_x = float(row['fork_x']) - float(row['pallet_x'])
+        relative_y = float(row['fork_y']) - float(row['pallet_y'])
+        # For relative theta, use the cosine of the angle between the pallet and the fork 
+        # to avoid the discontinuity at 0 and 2pi, need to convert degrees to radians first
+        relative_theta = np.cos(np.radians(float(row['fork_yaw']) - float(row['pallet_yaw'])))
 
         drive_vel = float(row['c_drive_vel']) 
         steer_vel = float(row['steering_rate'])
@@ -93,7 +99,7 @@ class RecordDemos():
                 i += 1
                 continue
             next_obs = self.get_obs_from_row(row)
-            if not(float(row['x_error']) == 0 or float(row['y_error']) == 0 or float(row['theta_error']) == 0):
+            if not(float(row['fork_x']) == 0 or float(row['fork_y']) == 0 or float(row['fork_yaw']) == 0):
                 self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
             obs = next_obs
             action = self.get_action_from_row(row)
