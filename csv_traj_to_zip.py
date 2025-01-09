@@ -42,11 +42,15 @@ class RecordDemos():
         #relative_y = float(row['y_error'])
         #relative_theta = float(row['theta_error'])
 
-        relative_x = float(row['fork_x']) - float(row['pallet_x'])
-        relative_y = float(row['fork_y']) - float(row['pallet_y'])
+        #relative_x = float(row['fork_x']) - float(row['pallet_x'])
+        #relative_y = float(row['fork_y']) - float(row['pallet_y'])
         # For relative theta, use the cosine of the angle between the pallet and the fork 
         # to avoid the discontinuity at 0 and 2pi, need to convert degrees to radians first
-        relative_theta = np.cos(np.radians(float(row['fork_yaw']) - float(row['pallet_yaw'])))
+        #relative_theta = np.cos(np.radians(float(row['fork_yaw']) - float(row['pallet_yaw'])))
+
+        relative_x = float(row['x_rel'])
+        relative_y = float(row['y_rel'])
+        relative_theta = float(row['theta_rel'])
 
         drive_vel = float(row['c_drive_vel']) 
         steer_vel = float(row['steering_rate'])
@@ -99,8 +103,8 @@ class RecordDemos():
                 i += 1
                 continue
             next_obs = self.get_obs_from_row(row)
-            if not(float(row['fork_x']) == 0 or float(row['fork_y']) == 0 or float(row['fork_yaw']) == 0):
-                self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
+            #if not(float(row['fork_x']) == 0 or float(row['fork_y']) == 0 or float(row['fork_yaw']) == 0):
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
             obs = next_obs
             action = self.get_action_from_row(row)
         self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
@@ -166,7 +170,6 @@ if __name__ == "__main__":
     parser.add_argument('--data_folder', type=str, default='./forklift_data/csv/', help='Path to the data folder')
     parser.add_argument('--episodes', type=int, default=int(200), help='Number of episodes to train for')
     parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
-    parser.add_argument('--split_action', action='store_true', help='Split the MOVE action into reach_pick, pick, reach_drop, drop')
 
     args = parser.parse_args()
 
@@ -197,13 +200,13 @@ if __name__ == "__main__":
     done = False
     num_recorder_eps = 0
     episode = 1
-    while num_recorder_eps < args.episodes: 
+    while num_recorder_eps < args.episodes and episode < args.episodes * 2:
         print("Episode: {}".format(episode+1))
         keys = list(sample.data_buffer.keys())
         try:
             done = sample.read_csv_row(bag_name="bag_{}data".format(episode))
-        except:
-            print("Error reading csv file")
+        except Exception as e:
+            print("Error reading csv file: {}".format(e))
             done = True
         if done:
             sample.next_trajectory()
