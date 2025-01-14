@@ -135,3 +135,5 @@ imitation_learning/__pycache__/
 
 # Forklift repo
 forklift_data/
+!forklift_data/csv/
+!forklift_data/csv/demo/
