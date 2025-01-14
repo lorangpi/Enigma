@@ -58,7 +58,8 @@ class RecordDemos():
         forks_shift = float(row['shift_pos'])
 
 
-        obs = np.array([relative_x, relative_y, relative_theta, forks_shift, drive_vel, steer_vel, steer_pos], dtype=np.float64)
+        #obs = np.array([relative_x, relative_y, relative_theta, forks_shift, drive_vel, steer_vel, steer_pos], dtype=np.float64)
+        obs = np.array([relative_x, relative_y, relative_theta, forks_shift], dtype=np.float64)
         #obs = np.array([pallet_x, pallet_y, pallet_yaw, crayler_x, crayler_y, crayler_yaw, forks_shift, drive_vel, steer_vel, steer_pos], dtype=np.float64)
 
         return obs
