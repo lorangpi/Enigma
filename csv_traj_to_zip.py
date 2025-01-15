@@ -47,6 +47,11 @@ class RecordDemos():
         # For relative theta, use the cosine of the angle between the pallet and the fork 
         # to avoid the discontinuity at 0 and 2pi, need to convert degrees to radians first
         #relative_theta = np.cos(np.radians(float(row['fork_yaw']) - float(row['pallet_yaw'])))
+        if self.args.name != None and 'load' in self.args.name:
+            absolute_z = float(row['z_pallet'])
+            absolute_2d_distance = np.linalg.norm([float(row['x_rel']), float(row['y_rel'])])
+            obs = np.array([absolute_z, absolute_2d_distance], dtype=np.float64)
+            return obs
 
         relative_x = float(row['x_rel'])
         relative_y = float(row['y_rel'])
@@ -69,11 +74,16 @@ class RecordDemos():
         Returns the action data from the row
         """
         # Access the value of the specified column and convert to float
-        c_shift_pos_ref = float(row['c_shift_pos_ref'])
-        c_drive_vel_ref = float(row['c_drive_vel_ref'])
-        c_steer_vel_ref = float(row['c_steer_vel_ref'])
+        if self.args.name != None and 'load' in self.args.name:
+            c_lift_pos_ref = float(row['c_lift_pos_ref'])
+            c_drive_vel_ref = float(row['c_drive_vel_ref'])
+            action = np.array([c_drive_vel_ref, c_lift_pos_ref], dtype=np.float64)
+        else:
+            c_shift_pos_ref = float(row['c_shift_pos_ref'])
+            c_drive_vel_ref = float(row['c_drive_vel_ref'])
+            c_steer_vel_ref = float(row['c_steer_vel_ref'])
 
-        action = np.array([c_drive_vel_ref, c_steer_vel_ref, c_shift_pos_ref], dtype=np.float64)
+            action = np.array([c_drive_vel_ref, c_steer_vel_ref, c_shift_pos_ref], dtype=np.float64)
 
         if self.previous_action is not None:
             # If one slot of the action is equal to zero and the previous action is not equal to zero, then replace the zero with the previous action
@@ -109,6 +119,12 @@ class RecordDemos():
             obs = next_obs
             action = self.get_action_from_row(row)
         self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory)
+        # Add 10 steps of nul action to the end of the trajectory
+        for i in range(10):
+            if self.args.name != None and 'load' in self.args.name:
+                self.state_memory = self.record_demos(next_obs, np.array([0, 0]), next_obs, self.state_memory)
+            else:
+                self.state_memory = self.record_demos(next_obs, np.array([0, 0, 0]), next_obs, self.state_memory)
         
         # Close the csv file
         csv_file.close()
