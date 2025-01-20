@@ -1,7 +1,7 @@
-name: drop_lowdim
+name: 20_reach_place_lowdim
 
-obs_dim: 2
-action_dim: 2
+obs_dim: 3
+action_dim: 3
 keypoint_dim: 0
 
 env_runner:
@@ -9,7 +9,7 @@ env_runner:
 
 dataset:
   _target_: diffusion_policy.dataset.pick_place_dataset.PickPlaceLowdimDataset
-  zarr_path: ../data/demo_seed_1/4_split_keypoint/hf_traj/place/keypoint/keypoint.zarr
+  zarr_path: ../data/demo_seed_0/20_unique/hf_traj/reach_place/keypoint/keypoint.zarr
   horizon: ${horizon}
   pad_before: ${eval:'${n_obs_steps}-1+${n_latency_steps}'}
   pad_after: ${eval:'${n_action_steps}-1'}
