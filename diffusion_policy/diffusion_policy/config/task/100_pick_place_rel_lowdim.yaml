@@ -1,6 +1,6 @@
-name: 27_pick_place_rel_lowdim
+name: 100_pick_place_rel_lowdim
 
-obs_dim: 10
+obs_dim: 7
 action_dim: 4
 keypoint_dim: 0
 
@@ -9,7 +9,7 @@ env_runner:
 
 dataset:
   _target_: diffusion_policy.dataset.pick_place_dataset.PickPlaceLowdimDataset
-  zarr_path: ../data/baselines/pick_place_rel_27/hf_traj/trace/keypoint/keypoint.zarr
+  zarr_path: ../data/baselines/pick_place_rel_100/hf_traj/trace/keypoint/keypoint.zarr
   horizon: ${horizon}
   pad_before: ${eval:'${n_obs_steps}-1+${n_latency_steps}'}
   pad_after: ${eval:'${n_action_steps}-1'}
