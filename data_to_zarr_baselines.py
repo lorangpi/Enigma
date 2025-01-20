@@ -91,7 +91,9 @@ features = Features({
 
 def prepare_data_for_dataset(trajectories, args):
     trajectory_objects = []
+    trajectory_sym = []
     counter = 1
+    counter_pickplace = 1
     for trajectory in trajectories:
         if not trajectory:
             continue
@@ -116,11 +118,55 @@ def prepare_data_for_dataset(trajectories, args):
         #    print("an episode that reached the goal")
         traj_obj = TrajectoryWithKeypoint(obs=obs, acts=acts, infos=infos, rews=rews, terminal=terminal, keypoint=keypoint)
         trajectory_objects.append(traj_obj)
+
+        #print("sym_step: ", sym_step)
+        # shape of sym_step: "on({},{})".format(self.obj_to_pick, self.place_to_drop), self.obj_to_pick, self.place_to_drop are numbers between 1 and 6
+        # one sym_action is of the form [x,y] where x is the object to pick and y is the place to drop
+        #print(sym_step.split(','))
+
+        # pick_num, drop_num = sym_step.split(',')
+        # pick_num = int(pick_num[-1])
+        # if 'peg' in drop_num:
+        #     drop_num = int(drop_num[-2]) + 3
+        # else:
+        #     drop_num = int(drop_num[-2])
+        # sym_act = np.array([pick_num, drop_num])
+        ## print("sym_act: ", sym_act)
+        # sym_acts = np.array([sym_act for _ in episode])
+        sym_steps = trajectory[2]
+        sym_acts = []
+        obs_sym = []
+        infos = []
+        rews = []
+        for step in sym_steps:
+            pick_num, drop_num, obs_step = step
+            pick_num = int(pick_num[-1])
+            if 'peg' in drop_num:
+                drop_num = int(drop_num[-1]) + 3
+            else:
+                drop_num = int(drop_num[-1])
+            sym_act = np.array([pick_num, drop_num])
+            sym_acts.append(sym_act)
+            obs_sym.append(obs[obs_step])
+            infos.append({})
+            rews.append(0.0)
+            if args.num_pickplaces > 0 and counter_pickplace == args.num_pickplaces:
+                break
+            counter_pickplace += 1
+        sym_acts = np.array(sym_acts)
+        obs_sym.append(obs[-1])
+        infos = np.array(infos)
+        rews = np.array(rews)
+        terminal = True
+        keypoint = obs_sym
+        traj_sym = TrajectoryWithKeypoint(obs=obs_sym, acts=sym_acts, infos=infos, rews=rews, terminal=terminal, keypoint=keypoint)
+        trajectory_sym.append(traj_sym)
+        if args.num_pickplaces > 0 and counter_pickplace >= args.num_pickplaces:
+            break
         if args.num_demos > 0 and counter == args.num_demos:
             break
         counter += 1
-
-    return trajectory_objects
+    return trajectory_objects, trajectory_sym
 
 
 def save_buffer_as_json(data_buffer, file_path):
@@ -162,6 +208,7 @@ if __name__ == "__main__":
     parser.add_argument('--data_dir', type=str, default='data/', help='Data Directory')
     parser.add_argument('--filter_actions', type=bool, default=False, help='Filter actions')
     parser.add_argument('--num_demos', type=int, default=0, help='Number of demonstrations')
+    parser.add_argument('--num_pickplaces', type=int, default=0, help='Number of pickplace demonstrations')
     args = parser.parse_args()
 
     # Load the buffer from the zip file
@@ -175,7 +222,7 @@ if __name__ == "__main__":
     n_obj = 1
     constant_indexes = []
     for act, buffer in data_buffers.items():
-        demo_trajectories_for_act = prepare_data_for_dataset(buffer, args) # a buffer is a list of trajectories for the high level act e.g reach_pick
+        demo_trajectories_for_act, demo_trajectories_for_sym_act = prepare_data_for_dataset(buffer, args) # a buffer is a list of trajectories for the high level act e.g reach_pick
         if args.filter_actions:
             # Find the indexes of the action space that are never used in the expert demonstrations or are always the same value
             constant_indexes = find_constant_indexes(np.array([demo_trajectories_for_act[0].acts]))
@@ -183,7 +230,9 @@ if __name__ == "__main__":
 
         # Save directory
         save_dir = args.data_dir + '/hf_traj/' + act + '/keypoint/'
+        sym_save_dir = args.data_dir + '/sym_traj/' + act + '/keypoint/'
         os.makedirs(save_dir, exist_ok=True)
+        os.makedirs(sym_save_dir, exist_ok=True)
         root = zarr.open(save_dir + 'keypoint.zarr', mode='w')
         data = root.create_group('data')
 
@@ -242,7 +291,60 @@ if __name__ == "__main__":
             #root.create_dataset('next_obs', data=next_obs, chunks=(1000, next_obs.shape[1]), compressor=compressor)
             #root.create_dataset('keypoints', data=keypoints, chunks=(1000, keypoints.shape[1]), compressor=compressor)
 
+        # Save directory
+        sym_save_dir = args.data_dir + '/sym_traj/' + act + '/keypoint/'
+        os.makedirs(sym_save_dir, exist_ok=True)
+        root = zarr.open(sym_save_dir + 'keypoint.zarr', mode='w')
+        data = root.create_group('data')
 
+        total_timesteps = 0
+        print(len(constant_indexes))
+        ee_dim = len(demo_trajectories_for_sym_act[0].acts[0]) - len(constant_indexes)
+        obs_dim = len(demo_trajectories_for_sym_act[0].obs[0])
+        keypoint_dim = len(demo_trajectories_for_sym_act[0].keypoint[0])
+        print("obs_dim: ", obs_dim, " keypoint_dim: ", keypoint_dim, " ee_dim: ", ee_dim)
+        # Count total number of timesteps
+        for traj in demo_trajectories_for_sym_act:
+            total_timesteps += len(traj.obs) - 1
+        # Count total number of episodes
+        n_episodes = len(demo_trajectories_for_sym_act)
+
+        action = data.create_dataset('action', shape=(total_timesteps, ee_dim), chunks=(201, ee_dim + len(constant_indexes)), dtype='f8')
+        low_dim = data.create_dataset('keypoint', shape=(total_timesteps, n_obj, keypoint_dim), chunks=(201, n_obj, keypoint_dim),
+                                    dtype='f8')
+        state = data.create_dataset('state', shape=(total_timesteps, obs_dim), chunks=(201, obs_dim), dtype='f8')
+
+        meta = root.create_group('meta')
+        episodes_end = meta.create_dataset('episode_ends', shape=(n_episodes), chunks=(201), dtype='i8')
+        data_cursor = 0
+        print("Num of trajectories: ", len(demo_trajectories_for_sym_act))
+        # Create a Zarr group for each trajectory
+        for traj_num, traj in enumerate(demo_trajectories_for_sym_act):
+            # Initialize a Zarr group
+            #root = zarr.group(store=zarr.DirectoryStore(save_dir + str(i)))
+
+            # Create a Zlib compressor
+            #compressor = numcodecs.Zlib(level=1) 
+            keypoint_save = None
+            for i in range(len(traj.obs)-1):#
+                #print(data_cursor)
+                # Set the data for the current timestep
+                if args.filter_actions:
+                    action[data_cursor] = traj.acts[i][[i for i in range(ee_dim + len(constant_indexes)) if i not in constant_indexes]]
+                else:
+                    action[data_cursor] = traj.acts[i]
+                try:
+                    low_dim[data_cursor] = [traj.keypoint[i]]
+                    keypoint_save = [traj.keypoint[i-1]]
+                except:
+                    low_dim[data_cursor] = keypoint_save
+                
+                state[data_cursor] = traj.obs[i]
+                # If shape[0] of obs is not 15 then print the shape
+                data_cursor += 1
+
+            # Set the end of the episode
+            episodes_end[traj_num] = data_cursor
 
 # Assume obs, action, next_obs, and keypoints are numpy arrays
 # obs, action, next_obs, keypoints = ...

@@ -64,7 +64,7 @@ reach_pick = Executor_Diffusion(id='ReachPick',
                          nulified_action_indexes=[3],
                          oracle=True,
                          wrapper = ReachPickWrapper,
-                         horizon=10)
+                         horizon=12)
 grasp = Executor_Diffusion(id='Grasp', 
                    #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
                    policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
@@ -73,7 +73,7 @@ grasp = Executor_Diffusion(id='Grasp',
                    nulified_action_indexes=[0, 1],
                    oracle=True,
                    wrapper = PickWrapper,
-                   horizon=10)
+                   horizon=18)
 reach_drop = Executor_Diffusion(id='ReachDrop', 
                          #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
                          policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
@@ -82,7 +82,7 @@ reach_drop = Executor_Diffusion(id='ReachDrop',
                          nulified_action_indexes=[3],
                          oracle=True,
                          wrapper = ReachDropWrapper,
-                         horizon=19)
+                         horizon=25)
 drop = Executor_Diffusion(id='Drop', 
                    #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                    policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
@@ -91,7 +91,7 @@ drop = Executor_Diffusion(id='Drop',
                    nulified_action_indexes=[0, 1],
                    oracle=True,
                    wrapper = DropWrapper,
-                   horizon=10)
+                   horizon=12)
 pickplace = Executor_Diffusion(id='PickPlace', 
                    policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=5900-train_loss=0.010.ckpt", 
                    #policy="/home/lorangpi/Enigma/saved_policies/epoch=3400-train_loss=0.020.ckpt", 
@@ -167,14 +167,14 @@ controller_config = suite.load_controller_config(default_controller='OSC_POSITIO
 device = "cpu"
 def env_fn():
     env = suite.make(
-        "Hanoi4x3",
+        "Hanoi7x5",
         robots="Kinova3",
         controller_configs=controller_config,
         has_renderer=True,
         has_offscreen_renderer=True,
         horizon=20000 if args.hanoi else 2000,
         use_camera_obs=False,
-        render_camera="frontview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+        render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         random_reset=False,
     )
 
@@ -254,14 +254,14 @@ def map_predicate(predicate):
     # Extract the objects from the predicate
     objects = predicate.split('(')[1].split(')')[0].split(',')
     # Map the objects to their corresponding ids
-    obj_mapping = {'cube1': 'o1', 'cube2': 'o2', 'cube3': 'o6', 'cube4': 'o7', 'peg1': 'o3', 'peg2': 'o4', 'peg3': 'o5'}
+    obj_mapping = {'cube1': 'o1', 'cube2': 'o2', 'cube3': 'o6', 'cube4': 'o7', 'cube5': 'o9', 'cube6': 'o11', 'cube7': 'o12', 'peg0': 'o8', 'peg1': 'o3', 'peg2': 'o4', 'peg3': 'o5', 'peg4': 'o10'}
     # Map the predicate to the PDDL format
     return f"p1({obj_mapping[objects[0]]},{obj_mapping[objects[1]]})"
 def change_predicate(predicate):
     # Extract the objects from the predicate
     objects = predicate.split('(')[1].split(')')[0].split(',')
     # Change clear(cube1) to p1(o1,o1)
-    obj_mapping = {'cube1': 'o1', 'cube2': 'o2', 'cube3': 'o6', 'cube4': 'o7', 'peg1': 'o3', 'peg2': 'o4', 'peg3': 'o5'}
+    obj_mapping = {'cube1': 'o1', 'cube2': 'o2', 'cube3': 'o6', 'cube4': 'o7', 'cube5': 'o9', 'cube6': 'o11', 'cube7': 'o12', 'peg0': 'o8', 'peg1': 'o3', 'peg2': 'o4', 'peg3': 'o5', 'peg4': 'o10'}
     return f"p1({obj_mapping[objects[0]]},{obj_mapping[objects[0]]})"
 # Filter and keep only the predicates that are "on" and are True and map them to the PDDL format
 init_predicates = {map_predicate(predicate): True for predicate in state.keys() if 'on' in predicate and state[predicate]}
@@ -273,7 +273,7 @@ print("Initial predicates: ", init_predicates)
 add_predicates_to_pddl('problem_static.pddl', init_predicates)
 
 # Generate a plan
-plan, _ = call_planner("domain_asp", "problem_dummy4x3")
+plan, _ = call_planner("domain_asp", "problem_dummy7x5")
 print("Plan: ", plan)
 
 # # Detected objects
@@ -299,7 +299,7 @@ print("Plan: ", plan)
 #     'peg2': peg2_body,
 #     'peg3': peg3_body
 # }
-obj_mapping = {'o1': 'cube1', 'o2': 'cube2', 'o6': 'cube3', 'o7': 'cube4', 'o3': 'peg1', 'o4': 'peg2', 'o5': 'peg3'}
+obj_mapping = {'o1': 'cube1', 'o2': 'cube2', 'o6': 'cube3', 'o7': 'cube4', 'o9': 'cube5', 'o11': 'cube6', 'o12': 'cube7', 'o8': 'peg0', 'o3': 'peg1', 'o4': 'peg2', 'o5': 'peg3', 'o10': 'peg4'}
 # area_pos = {'peg1': env.pegs_xy_center[0], 'peg2': env.pegs_xy_center[1], 'peg3': env.pegs_xy_center[2]}
 
 def valid_state_f(state):
@@ -307,7 +307,8 @@ def valid_state_f(state):
     # Filter only the values that are True
     state = {key: value for key, value in state.items() if value}
     # if state has not 3 keys, return None
-    if len(state) != 4:
+    print("State: ", state)
+    if len(state) != 7:
         return False
     # Check if cubes have fallen from other subes, i.e., check if two or more cubes are on the same peg
     pegs = []
@@ -320,7 +321,8 @@ def valid_state_f(state):
     #print(state)
     return True
 
-reset_gripper_pos = np.array([-0.14193391, -0.03391656,  0.95828137]) * 1000
+#reset_gripper_pos = np.array([-0.14193391, -0.03391656,  0.95828137]) * 1000
+reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.20828137]) * 1000
 successes = 0
 pick_place_failure = 0
 successful_operations = []
@@ -329,7 +331,7 @@ percentage_advancement = []
 def reset_gripper(env):
     print("Resetting gripper")
     # First move up
-    for _ in range(5):
+    for _ in range(12):
         action = np.array([0, 0, 500, 0])
         obs, reward, done, info = env.step([[action, action, action, action]])
     # Second move to the initial position
@@ -364,18 +366,20 @@ for i in range(100):
             obs, reward, done, info = env.step([[np.zeros(4), np.zeros(4), np.zeros(4), np.zeros(4)]])
             state = info[0]['state'][-1]
             valid_state = valid_state_f(state)
+            print(valid_state)
         # Generate the plan
         init_predicates = {map_predicate(predicate): True for predicate in state.keys() if 'on' in predicate and state[predicate]}
         init_predicates.update({change_predicate(predicate): True for predicate in state.keys() if 'clear' in predicate and state[predicate]})
 
         print("Initial predicates: ", init_predicates)
 
-        add_predicates_to_pddl('problem_static4x3.pddl', init_predicates, problem_name="problem_dummy4x3.pddl")
-        plan, _ = call_planner("domain_asp", "problem_dummy4x3")
+        add_predicates_to_pddl('problem_static7x5.pddl', init_predicates, problem_name="problem_dummy7x5.pddl")
+        plan, _ = call_planner("domain_asp", "problem_dummy7x5")
     print("Plan: ", plan)
 
     num_successful_operations = 0
     # Execute the first operator in the plan
+    reset_gripper(env)
     for operator in plan:
         print("\nExecuting operator: ", operator)
         # Concatenate the observations with the operator effects

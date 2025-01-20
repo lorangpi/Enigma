@@ -80,7 +80,7 @@ reach_drop = Executor_Diffusion(id='ReachDrop',
                          nulified_action_indexes=[3],
                          oracle=True,
                          wrapper = ReachDropWrapper,
-                         horizon=17)
+                         horizon=13)
 drop = Executor_Diffusion(id='Drop', 
                    #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                    policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
@@ -172,8 +172,8 @@ def env_fn():
         has_offscreen_renderer=True,
         horizon=20000 if args.hanoi else 2000,
         use_camera_obs=False,
-        render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
-        random_reset=True,
+        render_camera="frontview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+        random_reset=False,
     )
 
     # Wrap the environment
@@ -350,6 +350,7 @@ for i in range(100):
     success = False
     valid_state = False
     plan = False
+    np.random.seed(args.seed + i)
     # Reset the environment until a valid state is reached
     while plan == False:
         while not valid_state:
