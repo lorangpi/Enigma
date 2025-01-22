@@ -83,13 +83,14 @@ reach_drop = Executor_Diffusion(id='ReachDrop',
                          # WORKING POLICY BELOW
                          #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
                          #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.59_train_diffusion_transformer_lowdim_20_reach_place_lowdim/checkpoints/epoch=7900-train_loss=0.017.ckpt",
+                         #policy="/home/lorangpi/Enigma/results_baselines/outputs/10_reach_place/latest.ckpt",
                          policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/3x3_5demos/reach_place/checkpoints/latest.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_drop'),
                          nulified_action_indexes=[3],
                          oracle=True,
                          wrapper = ReachDropWrapper,
-                         horizon=13)
+                         horizon=25)
 drop = Executor_Diffusion(id='Drop', 
                    #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                    # WORKING POLICY BELOW

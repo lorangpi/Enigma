@@ -69,6 +69,7 @@ class RecordDemos(gym.Wrapper):
         return eps
 
     def reset_gripper(self):
+        self.reset_step_count = 0
         for _ in range(30):
             action = np.array([0, 0, 500, 0])
             next_obs, _, _, _, _  = self.env.step(action)
