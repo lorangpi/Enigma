@@ -160,12 +160,21 @@ if __name__ == "__main__":
     # Arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/', help='Data Directory')
+    parser.add_argument('--data_dir2', type=str, default="", help='Data Directory of second set of demonstrations')
     parser.add_argument('--filter_actions', type=bool, default=False, help='Filter actions')
     parser.add_argument('--num_demos', type=int, default=0, help='Number of demonstrations')
+    parser.add_argument('--save_dir', type=str, default='', help='Save Directory')
     args = parser.parse_args()
 
     # Load the buffer from the zip file
     data_buffers = load_data_from_zip(args.data_dir + '/traces/')
+    if args.data_dir2 != "":
+        data_buffers2 = load_data_from_zip(args.data_dir2 + '/traces/')
+        for act, buffer in data_buffers2.items():
+            if act in data_buffers:
+                data_buffers[act] += buffer
+            else:
+                data_buffers[act] = buffer
 
     # Convert the buffer to a dict
     # dict_format_buffer = convert_to_dict_format(data_buffer)
@@ -182,7 +191,10 @@ if __name__ == "__main__":
             print("Filtered action space for ", act, ":", constant_indexes, " index actions removed")
 
         # Save directory
-        save_dir = args.data_dir + '/hf_traj/' + act + '/keypoint/'
+        if args.save_dir == '':
+            save_dir = args.data_dir + '/hf_traj/' + act + '/keypoint/'
+        else:
+            save_dir = args.save_dir + '/hf_traj/' + act + '/keypoint/'
         os.makedirs(save_dir, exist_ok=True)
         root = zarr.open(save_dir + 'keypoint.zarr', mode='w')
         data = root.create_group('data')
