@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - task: 5_reach_place_lowdim
+  - task: 4x4_expert_reach_place_lowdim
 
 name: train_diffusion_transformer_lowdim
 _target_: diffusion_policy.workspace.train_diffusion_transformer_lowdim_workspace.TrainDiffusionTransformerLowdimWorkspace
