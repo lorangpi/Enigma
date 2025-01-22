@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - task: 10_reach_place_lowdim
+  - task: 5_grasp_lowdim
 
 name: train_diffusion_transformer_lowdim
 _target_: diffusion_policy.workspace.train_diffusion_transformer_lowdim_workspace.TrainDiffusionTransformerLowdimWorkspace
@@ -133,14 +133,14 @@ checkpoint:
   save_last_snapshot: False
 
 multi_run:
-  run_dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}
+  run_dir: data/outputs/3x3_5demos/grasp/
   wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_${name}_${task_name}
 
 hydra:
   job:
     override_dirname: ${name}
   run:
-    dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}
+    dir: data/outputs/3x3_5demos/grasp/
   sweep:
-    dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}
+    dir: data/outputs/3x3_5demos/grasp/
     subdir: ${hydra.job.num}

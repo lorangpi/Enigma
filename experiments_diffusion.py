@@ -56,7 +56,9 @@ def termination_indicator(operator):
 # Load executors
 reach_pick = Executor_Diffusion(id='ReachPick', 
                          #policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
-                         policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
+                         # WORKING POLICY BELOW
+                         #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
+                         policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
@@ -65,7 +67,9 @@ reach_pick = Executor_Diffusion(id='ReachPick',
                          horizon=10)
 grasp = Executor_Diffusion(id='Grasp', 
                    #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
-                   policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
+                   # WORKING POLICY BELOW
+                         #policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
+                   policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.37_train_diffusion_transformer_lowdim_5_grasp_lowdim/checkpoints/epoch=7300-train_loss=0.021.ckpt",
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[0, 1],
@@ -74,7 +78,9 @@ grasp = Executor_Diffusion(id='Grasp',
                    horizon=10)
 reach_drop = Executor_Diffusion(id='ReachDrop', 
                          #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
-                         policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
+                         # WORKING POLICY BELOW
+                         #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
+                         policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_drop'),
                          nulified_action_indexes=[3],
@@ -83,7 +89,9 @@ reach_drop = Executor_Diffusion(id='ReachDrop',
                          horizon=13)
 drop = Executor_Diffusion(id='Drop', 
                    #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
-                   policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
+                   # WORKING POLICY BELOW
+                         #policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
+                   policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[0, 1],
@@ -318,7 +326,7 @@ def valid_state_f(state):
     #print(state)
     return True
 
-reset_gripper_pos = np.array([-0.14193391, -0.03391656,  0.95828137]) * 1000
+reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.05828137]) * 1000
 successes = 0
 pick_place_failure = 0
 successful_operations = []
@@ -372,6 +380,7 @@ for i in range(100):
 
     num_successful_operations = 0
     # Execute the first operator in the plan
+    reset_gripper(env)
     for operator in plan:
         print("\nExecuting operator: ", operator)
         # Concatenate the observations with the operator effects

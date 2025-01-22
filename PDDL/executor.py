@@ -281,11 +281,11 @@ class Executor_Diffusion(Executor):
         if action_step == "PickPlace":
             oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]], obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
         elif action_step == "ReachPick":
-            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]+ [-12,0,0]])
         elif action_step == "Grasp":
             oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
         elif action_step == "ReachDrop":
-            oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+            oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]+ [-2,14,0]])
         elif action_step == "Drop":
             oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
         else:
@@ -333,13 +333,26 @@ class Executor_Diffusion(Executor):
         #print("Original obs shape: ", obs.shape)
         return returned_obs
 
-    def execute(self, env, obs, goal, symgoal, render=False):
+    def obs_base_from_info(self, info):
+        obs_base = []
+        for i in range(len(info)):
+            obs_base.append(info[i]["obs_base"])
+        return np.array(obs_base)
+
+    def execute(self, env, obs, goal, symgoal, render=False, info = {}):
         '''
         This method is responsible for executing the policy on the given state. It takes a state as a parameter and returns the action 
         produced by the policy on that state. 
         '''
         horizon = self.horizon if self.horizon is not None else 500
         print("\tTask goal: ", symgoal)
+
+        obs_base = False
+
+        if isinstance(obs, np.ndarray):
+            obs_base = np.any(obs == None)
+        else:
+            obs_base = obs == None
 
         step_executor = 0
         done = False
@@ -348,6 +361,8 @@ class Executor_Diffusion(Executor):
             # Prepare the observation for the policy
             if self.oracle:
                 obs = self.prepare_obs(obs, action_step=self.id)
+            if obs_base:
+                obs = self.obs_base_from_info(info)
             # create obs dict
             np_obs_dict = {
                 'obs': obs.astype(np.float32)
@@ -363,6 +378,15 @@ class Executor_Diffusion(Executor):
             np_action_dict = dict_apply(action_dict,
                 lambda x: x.detach().to('cpu').numpy())
             action = np_action_dict['action']
+            if obs_base:
+                    print("Action: ", action)
+                    obj_to_pick = action[0][0][0]
+                    obj_to_drop = action[0][0][1]
+                    obj_to_pick = "cube" + str(int(obj_to_pick))
+                    obj_to_drop = "peg" + str(int(obj_to_drop)-3) if obj_to_drop >= 4 else "cube" + str(int(obj_to_drop))
+                    print("New task: ", (obj_to_pick, obj_to_drop))
+                    env.set_task((obj_to_pick, obj_to_drop))
+                    return (obj_to_pick, obj_to_drop), True
             # If the actions in action (array) do not have 4 elements, then concatenate [0] to the action array
             if len(action[0][0]) < 4:
                 # Create a column of zeros

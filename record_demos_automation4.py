@@ -12,6 +12,8 @@ from graph_learner import GraphLearner
 def to_datestring(unixtime: int, format='%Y-%m-%d_%H:%M:%S'):
 	return datetime.utcfromtimestamp(unixtime).strftime(format)
 
+reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.05828137]) * 1000
+
 class RecordDemos(gym.Wrapper):
     def __init__(self, env, args, randomize=True):
         # Run super method
@@ -66,6 +68,27 @@ class RecordDemos(gym.Wrapper):
             eps = eps / np.linalg.norm(eps) * min_val
         return eps
 
+    def reset_gripper(self):
+        for _ in range(30):
+            action = np.array([0, 0, 500, 0])
+            next_obs, _, _, _, _  = self.env.step(action)
+            self.env.render() if self.render_init else None
+            self.reset_step_count += 1
+        # Second move to the initial position
+        current_pos = self.env.sim.data.body_xpos[self.gripper_body][:3] * 1000
+        delta = reset_gripper_pos - current_pos
+        action = 5*np.array([delta[0], delta[1], delta[2], 0])
+        while np.linalg.norm(delta) > 10:
+            #print("Curent pos: ", current_pos)
+            action = 5*np.array([delta[0], delta[1], delta[2], 0])
+            action = action * 0.9
+            next_obs, _, _, _, _  = self.env.step(action)
+            self.env.render() if self.render_init else None
+            self.reset_step_count += 1
+            current_pos = self.env.sim.data.body_xpos[self.gripper_body][:3] * 1000
+            delta = reset_gripper_pos - current_pos
+        self.reset_step_count = 0
+        self.env.time_step = 0
 
     def pick_reset(self, obs):
         """
@@ -83,19 +106,23 @@ class RecordDemos(gym.Wrapper):
 
         # Moving gripper to the front
         #print("Moving gripper to the front...")
-        for _ in range(np.random.randint(0, 50)):
-            action = np.asarray([0.5,0,0,0])
-            action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
-            self.env.render() if self.render_init else None
+        if not self.args.expert:
+            for _ in range(np.random.randint(0, 50)):
+                action = np.asarray([0.5,0,0,0])
+                action = action * 1000
+                next_obs, _, _, _, _  = self.env.step(action)
+                self.env.render() if self.render_init else None
 
-        # Moving randomly 0 to 200 steps
-        for k in range(np.random.randint(1, 100)):
-            generate_random_3d_action = np.random.uniform(-0.5, 0.5, 3)
-            action = np.concatenate([generate_random_3d_action, [0]])
-            action = action * 1000
-            obs,_,_,_,_ = self.env.step(action)
-            self.env.render() if self.render_init else None
+            # Moving randomly 0 to 200 steps
+            for k in range(np.random.randint(1, 100)):
+                generate_random_3d_action = np.random.uniform(-0.5, 0.5, 3)
+                action = np.concatenate([generate_random_3d_action, [0]])
+                action = action * 1000
+                obs,_,_,_,_ = self.env.step(action)
+                self.env.render() if self.render_init else None
+        else:
+            # Reset the gripper to the initial position
+            self.reset_gripper()
 
         self.reset_step_count = 0
         #print("Moving up...")
@@ -314,11 +341,20 @@ class RecordDemos(gym.Wrapper):
         # Reset the environment
         self.episode_buffer = dict() # 1 episode here consists of a trajectory between 2 symbolic nodes
         self.symbolic_buffer = list()
-        try:
-            obs, _ = self.env.reset()
-        except:
-            obs = self.env.reset()
-        self.sample_task()
+        if self.args.expert:
+            self.place_to_drop = "peg1"
+            while self.place_to_drop == "peg1":
+                try:
+                    obs, _ = self.env.reset()
+                except:
+                    obs = self.env.reset()
+                self.sample_task()
+        else:
+            try:
+                obs, _ = self.env.reset()
+            except:
+                obs = self.env.reset()
+            self.sample_task()
         self.sim.forward()
         return obs
 
@@ -457,7 +493,7 @@ class RecordDemos(gym.Wrapper):
                 state = {key: value for key, value in state.items() if value}
                 new_state = {key: value for key, value in new_state.items() if value}
                 # if state has not 3 keys, return None
-                if len(state) != 3 or len(new_state) != 3:
+                if (len(state) != 3 or len(new_state) != 3) and not(self.args.expert):
                     return None
                 # Check if cubes have fallen from other subes, i.e., check if two or more cubes are on the same peg
                 for test_state in [state, new_state]:
@@ -465,7 +501,7 @@ class RecordDemos(gym.Wrapper):
                     for relation, value in test_state.items():
                         _, peg = relation.split('(')[1].split(',')
                         pegs.append(peg)
-                    if len(pegs) != len(set(pegs)):
+                    if len(pegs) != len(set(pegs)) and not(self.args.expert):
                         return None
                 if self.args.unique:
                     # Check if the transition is unique
@@ -521,6 +557,7 @@ if __name__ == "__main__":
     parser.add_argument('--goal_env', action='store_true', help='Use the goal environment')
     parser.add_argument('--keypoint', action='store_true', help='Store the keypoint')
     parser.add_argument('--unique', action='store_true', help='Unique transitions, 27 possible transitions')
+    parser.add_argument('--expert', action='store_true', help='Expert mode')
 
     args = parser.parse_args()
     # Set the random seed
@@ -548,7 +585,7 @@ if __name__ == "__main__":
     controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
     # Create the environment
     env = suite.make(
-        "Hanoi",
+        "Hanoi4x4",
         robots="Kinova3",
         controller_configs=controller_config,
         has_renderer=args.render,
@@ -556,7 +593,7 @@ if __name__ == "__main__":
         horizon=100000000,
         use_camera_obs=False,
         render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
-        random_reset=True,
+        random_reset=False,
     )
 
     # Wrap the environment
@@ -574,9 +611,9 @@ if __name__ == "__main__":
     episode = 1
     while num_recorder_eps < args.episodes: 
         print("Episode: {}".format(episode+1))
-        keys = list(env.data_buffer.keys())
         done = env.step_episode(obs)
         if done:
+            print("Saving episode {}...".format(episode))
             obs = env.next_episode()
         else:
             try:
@@ -592,6 +629,7 @@ if __name__ == "__main__":
         if episode % 27 == 0:
             print("\n Graph mapping: ", env.Graph.state_mapping)
         episode += 1
+        keys = list(env.data_buffer.keys())
         if len(keys) > 0:
             num_recorder_eps = len(env.data_buffer[keys[0]])
             print("Number of recorded episodes: {}".format(num_recorder_eps))

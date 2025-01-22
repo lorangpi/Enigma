@@ -58,7 +58,9 @@ def termination_indicator(operator):
 # Load executors
 reach_pick = Executor_Diffusion(id='ReachPick', 
                          #policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
-                         policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
+                         # WORKING POLICY BELOW
+                         #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
+                         policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.54_train_diffusion_transformer_lowdim_10_reach_pick_lowdim/checkpoints/epoch=6500-train_loss=0.028.ckpt",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
@@ -67,7 +69,9 @@ reach_pick = Executor_Diffusion(id='ReachPick',
                          horizon=10)
 grasp = Executor_Diffusion(id='Grasp', 
                    #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
-                   policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
+                   # WORKING POLICY BELOW
+                         #policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
+                   policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.45_train_diffusion_transformer_lowdim_10_grasp_lowdim/checkpoints/epoch=7850-train_loss=0.020.ckpt",
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[0, 1],
@@ -75,17 +79,22 @@ grasp = Executor_Diffusion(id='Grasp',
                    wrapper = PickWrapper,
                    horizon=10)
 reach_drop = Executor_Diffusion(id='ReachDrop', 
-                        #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
-                        policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
-                        I={}, 
-                        Beta=termination_indicator('reach_drop'),
-                        nulified_action_indexes=[3],
-                        oracle=True,
-                        wrapper = ReachDropWrapper,
-                        horizon=17)
+                         #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
+                         # WORKING POLICY BELOW
+                         #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
+                         #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.59_train_diffusion_transformer_lowdim_20_reach_place_lowdim/checkpoints/epoch=7900-train_loss=0.017.ckpt",
+                         policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/3x3_5demos/reach_place/checkpoints/latest.ckpt",
+                         I={}, 
+                         Beta=termination_indicator('reach_drop'),
+                         nulified_action_indexes=[3],
+                         oracle=True,
+                         wrapper = ReachDropWrapper,
+                         horizon=13)
 drop = Executor_Diffusion(id='Drop', 
                    #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
-                   policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
+                   # WORKING POLICY BELOW
+                         #policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
+                   policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.29_train_diffusion_transformer_lowdim_10_drop_lowdim/checkpoints/epoch=5450-train_loss=0.044.ckpt",
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[0, 1],

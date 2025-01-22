@@ -1,0 +1,2 @@
+- training.seed=42
+- training.device=cpu:0

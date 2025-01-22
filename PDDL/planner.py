@@ -6,7 +6,7 @@ pddl_dir = "./PDDL"
 domain_dir = "Domains"
 problem_dir = "Problems"
 
-def add_predicates_to_pddl(pddl_name, init_predicates):
+def add_predicates_to_pddl(pddl_name, init_predicates, problem_name="problem_dummy.pddl"):
     pddl_file_path = pddl_dir + os.sep + problem_dir + os.sep + pddl_name
     with open(pddl_file_path, 'r') as file:
         lines = file.readlines()
@@ -20,7 +20,7 @@ def add_predicates_to_pddl(pddl_name, init_predicates):
             lines.insert(init_index + 1, f'({predicate})\n')
 
     # define new problem file path with the end file being named as "problem_dummy.pddl" (os.sep is used to handle the path separator)
-    problem_path = pddl_dir + os.sep + problem_dir + os.sep + "problem_dummy.pddl"
+    problem_path = pddl_dir + os.sep + problem_dir + os.sep + problem_name
 
     # overwrite the new problem file
     with open(problem_path, 'w') as file:
@@ -40,6 +40,7 @@ def call_planner(domain, problem, structure="pddl"):
         output = subprocess.getoutput(run_script)
         #print("Output = ", output)
         if "unsolvable" in output or "goal can be simplified to FALSE" in output:
+            print("The planner failed because the problem is unsolvable: {}".format(output))
             return False, False
         try:
             output = output.split('ff: found legal plan as follows\n')[1]
