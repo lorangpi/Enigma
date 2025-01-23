@@ -138,13 +138,24 @@ def prepare_data_for_dataset(trajectories, args):
         obs_sym = []
         infos = []
         rews = []
-        for step in sym_steps:
+        for n, step in enumerate(sym_steps):
             pick_num, drop_num, obs_step = step
             pick_num = int(pick_num[-1])
             if 'peg' in drop_num:
                 drop_num = int(drop_num[-1]) + 3
             else:
                 drop_num = int(drop_num[-1])
+            if args.full:
+                try:
+                    next_obs_step = sym_steps[n+1][2]
+                except:
+                    next_obs_step = len(obs)
+                for i in range(obs_step, next_obs_step):
+                    sym_act = np.array([pick_num, drop_num])
+                    sym_acts.append(sym_act)
+                    obs_sym.append(obs[i])
+                    infos.append({})
+                    rews.append(0.0)
             sym_act = np.array([pick_num, drop_num])
             sym_acts.append(sym_act)
             obs_sym.append(obs[obs_step])
@@ -209,6 +220,8 @@ if __name__ == "__main__":
     parser.add_argument('--filter_actions', type=bool, default=False, help='Filter actions')
     parser.add_argument('--num_demos', type=int, default=0, help='Number of demonstrations')
     parser.add_argument('--num_pickplaces', type=int, default=0, help='Number of pickplace demonstrations')
+    parser.add_argument('--full', action='store_true', help='Use the full dataset')
+    parser.add_argument('--save_dir', type=str, default='', help='Save Directory')
     args = parser.parse_args()
 
     # Load the buffer from the zip file
@@ -229,8 +242,12 @@ if __name__ == "__main__":
             print("Filtered action space for ", act, ":", constant_indexes, " index actions removed")
 
         # Save directory
-        save_dir = args.data_dir + '/hf_traj/' + act + '/keypoint/'
-        sym_save_dir = args.data_dir + '/sym_traj/' + act + '/keypoint/'
+        if args.save_dir == '':
+            save_dir = args.data_dir + '/hf_traj/' + act + '/keypoint/'
+            sym_save_dir = args.data_dir + '/sym_traj/' + act + '/keypoint/'
+        else:
+            save_dir = args.save_dir + '/hf_traj/' + act + '/keypoint/'
+            sym_save_dir = args.save_dir + '/sym_traj/' + act + '/keypoint/'
         os.makedirs(save_dir, exist_ok=True)
         os.makedirs(sym_save_dir, exist_ok=True)
         root = zarr.open(save_dir + 'keypoint.zarr', mode='w')
