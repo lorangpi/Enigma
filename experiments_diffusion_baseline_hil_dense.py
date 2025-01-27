@@ -58,17 +58,26 @@ def termination_indicator(operator):
     return Beta
 
 # Load executors
-hanoi_policy = Executor_Diffusion(id='PickPlace', 
-                   #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/07.35.32_train_diffusion_transformer_lowdim_500_hanoi_lowdim/checkpoints/epoch=0950-train_loss=0.019.ckpt", 
-                   policy=f"./policies/il_{args.demos}/latest.ckpt",
+reasoner = Executor_Diffusion(id='PickPlace', 
+                   #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/07.35.41_train_diffusion_transformer_lowdim_500_oracle_lowdim/checkpoints/epoch=7950-train_loss=0.004.ckpt", 
+                   policy=f"./policies/hil_dense_{args.demos}/reasoner.ckpt",
                    I={}, 
-                   Beta=termination_indicator('drop'),
+                   Beta=termination_indicator('other'),
                    nulified_action_indexes=[],
                    oracle=False,
                    wrapper = DropWrapper,
-                   horizon=500)
+                   horizon=1)
+pickplace = Executor_Diffusion(id='PickPlace', 
+                   #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/07.36.55_train_diffusion_transformer_lowdim_500_pick_place_rel_lowdim/checkpoints/epoch=1900-train_loss=0.027.ckpt", 
+                   policy=f"./policies/hil_{args.demos}/pickplace.ckpt",
+                   I={}, 
+                   Beta=termination_indicator('drop'),
+                   nulified_action_indexes=[],
+                   oracle=True,
+                   wrapper = DropWrapper,
+                   horizon=50)
 
-Move_action = [hanoi_policy]
+Move_action = [pickplace]
 
 # Create an env wrapper which transforms the outputs of reset() and step() into gym formats (and not gymnasium formats)
 class GymnasiumToGymWrapper(gym.Env):
@@ -76,7 +85,7 @@ class GymnasiumToGymWrapper(gym.Env):
         self.env = env
         self.action_space = env.action_space
         # set up observation space
-        self.obs_dim = 22
+        self.obs_dim = 10
 
         high = np.inf * np.ones(self.obs_dim)
         low = -high
@@ -130,7 +139,7 @@ def env_fn():
 
     # Wrap the environment
     env = GymWrapper(env)
-    env = PickPlaceWrapper(env, render_init=args.render, horizon=20000 if args.hanoi else 2000, hanoi=args.hanoi, oracle=False)
+    env = PickPlaceWrapper(env, render_init=args.render, horizon=20000 if args.hanoi else 2000, hanoi=args.hanoi, oracle=True)
     env = GymnasiumToGymWrapper(env)
     env = MultiStepWrapper(
         env=env,
@@ -148,7 +157,7 @@ dummy_env = env_fn()
 
 print(dummy_env.observation_space)
 
-obs_dim = 22
+obs_dim = 10
 high = np.inf * np.ones(obs_dim)
 low = -high
 observation_space = gym.spaces.Box(low, high, dtype=np.float64)
@@ -238,12 +247,9 @@ def reset_gripper(env):
 
 ground_truth_plan = [("cube1","peg3"), ("cube2","peg2"), ("cube1","cube2"), ("cube3","peg3"), ("cube1","peg1"), ("cube2","cube3"), ("cube1","cube2")]
 
-plan_hoirzon = 7
-step_counter = 0
-hanoi_policy.load_policy()
 for i in range(100):
     print("Episode: ", i)
-    success = False
+    success = True
     valid_state = False
     np.random.seed(args.seed + i)
     # Reset the environment until a valid state is reached
@@ -258,15 +264,36 @@ for i in range(100):
         state = info[0]['state'][-1]
         valid_state = valid_state_f(state)
 
-    goal = None
+
+
+    pickplace.load_policy()
+    reasoner.load_policy()
+
+    reset_gripper(env)
     pick_place_success = 0
-    for symgoal in plan_hoirzon:
-        num_valid_pick_place_queries += 1
-        obs, success = hanoi_policy.execute(env, obs, goal, symgoal, render=args.render)
+    # Execute the first operator in the plan
+    for j in range(7):
+        if j == 0:
+            task = ("cube1","peg3")
+        else:
+            task, success = reasoner.execute(env, None, None, None, render=args.render, info=info)
+        print("Symgoal: ", task)
+
+        valid_pick_place_querie = task == ground_truth_plan[j]
+        if valid_pick_place_querie:
+            num_valid_pick_place_queries += 1
+
+        if not success:
+            break
+        success = False
+        goal = []
+        obs, success = pickplace.execute(env, obs, goal, task, render=args.render)
         if success:
             pick_place_success += 1
-            valid_pick_place_success += 1
-            print("Execution succeeded.\n")
+            print("+++ Object successfully picked and placed.")
+            print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {pick_place_success/7}")
+            if valid_pick_place_querie:
+                valid_pick_place_success += 1
         else:
             print("Execution failed.\n")
             # Print the number of operators that were successfully executed out of the total number of operators in the plan
@@ -291,10 +318,9 @@ print("Pick placce success rate: ", valid_pick_place_success/num_valid_pick_plac
 
 print("Success rate: ", hanoi_successes/(100))
 # Write the results to a file results_seed_{args.seed}.txt
-with open(f"results/results_il_{args.demos}_seed_{args.seed}.txt", 'w') as file:
+with open(f"results/results_hil_dense_{args.demos}_seed_{args.seed}.txt", 'w') as file:
     file.write("Success rate: {}\n".format(hanoi_successes/(100)))
     file.write("Mean Successful pick_place: {}\n".format(mean(pick_place_successes)))
     file.write("Mean Percentage advancement: {}\n".format(mean(percentage_advancement)))
     file.write("Pick placce success rate: {}\n".format(valid_pick_place_success/num_valid_pick_place_queries))
-
 

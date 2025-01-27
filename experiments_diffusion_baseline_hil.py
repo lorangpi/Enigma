@@ -32,6 +32,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--render', action='store_true', help='Render the environment')
 parser.add_argument('--seed', type=int, default=0, help='Random seed')
 parser.add_argument('--hanoi', action='store_true', help='Use the Hanoi environment')
+parser.add_argument('--demos', type=int, default=0, help='Number of demonstrations used by the learned policies')
 args = parser.parse_args()
 
 def termination_indicator(operator):
@@ -58,7 +59,8 @@ def termination_indicator(operator):
 
 # Load executors
 reasoner = Executor_Diffusion(id='PickPlace', 
-                   policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/07.35.41_train_diffusion_transformer_lowdim_500_oracle_lowdim/checkpoints/epoch=7950-train_loss=0.004.ckpt", 
+                   #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/07.35.41_train_diffusion_transformer_lowdim_500_oracle_lowdim/checkpoints/epoch=7950-train_loss=0.004.ckpt", 
+                   policy=f"./policies/hil_{args.demos}/reasoner.ckpt",
                    I={}, 
                    Beta=termination_indicator('other'),
                    nulified_action_indexes=[],
@@ -66,7 +68,8 @@ reasoner = Executor_Diffusion(id='PickPlace',
                    wrapper = DropWrapper,
                    horizon=1)
 pickplace = Executor_Diffusion(id='PickPlace', 
-                   policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/07.36.55_train_diffusion_transformer_lowdim_500_pick_place_rel_lowdim/checkpoints/epoch=1900-train_loss=0.027.ckpt", 
+                   #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/07.36.55_train_diffusion_transformer_lowdim_500_pick_place_rel_lowdim/checkpoints/epoch=1900-train_loss=0.027.ckpt", 
+                   policy=f"./policies/hil_{args.demos}/pickplace.ckpt",
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[],
@@ -213,10 +216,12 @@ def valid_state_f(state):
     return True
 
 reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.05828137]) * 1000
-successes = 0
+hanoi_successes = 0
+num_valid_pick_place_queries = 0
 pick_place_success = 0
 pick_place_successes = []
 percentage_advancement = []
+valid_pick_place_success = 0
 
 def reset_gripper(env):
     print("Resetting gripper")
@@ -238,6 +243,9 @@ def reset_gripper(env):
         current_pos = obs[:3]
         delta = reset_gripper_pos - current_pos
         #print(f"Delta: {delta}, Current pos: {current_pos}, Reset pos: {reset_gripper_pos}")
+
+
+ground_truth_plan = [("cube1","peg3"), ("cube2","peg2"), ("cube1","cube2"), ("cube3","peg3"), ("cube1","peg1"), ("cube2","cube3"), ("cube1","cube2")]
 
 for i in range(100):
     print("Episode: ", i)
@@ -270,14 +278,22 @@ for i in range(100):
         else:
             task, success = reasoner.execute(env, None, None, None, render=args.render, info=info)
         print("Symgoal: ", task)
+
+        valid_pick_place_querie = task == ground_truth_plan[j]
+        if valid_pick_place_querie:
+            num_valid_pick_place_queries += 1
+
         if not success:
             break
+        success = False
         goal = []
         obs, success = pickplace.execute(env, obs, goal, task, render=args.render)
         if success:
             pick_place_success += 1
             print("+++ Object successfully picked and placed.")
             print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {pick_place_success/7}")
+            if valid_pick_place_querie:
+                valid_pick_place_success += 1
         else:
             print("Execution failed.\n")
             # Print the number of operators that were successfully executed out of the total number of operators in the plan
@@ -286,9 +302,9 @@ for i in range(100):
             break
         reset_gripper(env)
     if success:
-        successes += 1
+        hanoi_successes += 1
         print("Hanoi Execution succeeded.\n")
-    print("Success rate: ", successes/(i+1))
+    print("Success rate: ", hanoi_successes/(i+1))
     print("\n\n")
 
     pick_place_successes.append(pick_place_success)
@@ -298,11 +314,13 @@ print("Successfull pick_place: ", pick_place_successes)
 print("Percentage advancement: ", percentage_advancement)
 print("Mean Successful pick_place: ", mean(pick_place_successes))
 print("Mean Percentage advancement: ", mean(percentage_advancement))
+print("Pick placce success rate: ", valid_pick_place_success/num_valid_pick_place_queries)
 
-print("Success rate: ", successes/(100))
+print("Success rate: ", hanoi_successes/(100))
 # Write the results to a file results_seed_{args.seed}.txt
-with open(f"results_seed_{args.seed}.txt", 'w') as file:
-    file.write("Success rate: {}\n".format(successes/(100)))
+with open(f"results/results_hil_{args.demos}_seed_{args.seed}.txt", 'w') as file:
+    file.write("Success rate: {}\n".format(hanoi_successes/(100)))
     file.write("Mean Successful pick_place: {}\n".format(mean(pick_place_successes)))
     file.write("Mean Percentage advancement: {}\n".format(mean(percentage_advancement)))
+    file.write("Pick placce success rate: {}\n".format(valid_pick_place_success/num_valid_pick_place_queries))
 
