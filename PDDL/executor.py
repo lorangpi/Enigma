@@ -339,7 +339,24 @@ class Executor_Diffusion(Executor):
             obs_base.append(info[i]["obs_base"])
         return np.array(obs_base)
 
-    def execute(self, env, obs, goal, symgoal, render=False, info = {}):
+    def valid_state_f(self, state):
+        state = {k: state[k] for k in state if 'on' in k}
+        # Filter only the values that are True
+        state = {key: value for key, value in state.items() if value}
+        # if state has not 3 keys, return None
+        if len(state) != 3:
+            return False
+        # Check if cubes have fallen from other subes, i.e., check if two or more cubes are on the same peg
+        pegs = []
+        for relation, value in state.items():
+            _, peg = relation.split('(')[1].split(',')
+            pegs.append(peg)
+        if len(pegs) != len(set(pegs)):
+            #print("Two or more cubes are on the same peg")
+            return False
+        return True
+
+    def execute(self, env, obs, goal, symgoal, render=False, info = {}, setting="3x3"):
         '''
         This method is responsible for executing the policy on the given state. It takes a state as a parameter and returns the action 
         produced by the policy on that state. 
@@ -382,11 +399,16 @@ class Executor_Diffusion(Executor):
                     print("Action: ", action)
                     obj_to_pick = action[0][0][0]
                     obj_to_drop = action[0][0][1]
-                    obj_to_pick = "cube" + str(int(obj_to_pick))
-                    obj_to_drop = "peg" + str(int(obj_to_drop)-3) if obj_to_drop >= 4 else "cube" + str(int(obj_to_drop))
+                    success = round(obj_to_drop) != round(obj_to_pick)
+                    if not success:
+                        action = (round(obj_to_pick), round(obj_to_drop))
+                        print("Invalid task: ", action)
+                        return None, success
+                    obj_to_pick = "cube" + str(round(obj_to_pick))
+                    obj_to_drop = "peg" + str(round(obj_to_drop)-3) if obj_to_drop >= 4 else "cube" + str(round(obj_to_drop))
                     print("New task: ", (obj_to_pick, obj_to_drop))
                     env.set_task((obj_to_pick, obj_to_drop))
-                    return (obj_to_pick, obj_to_drop), True
+                    return (obj_to_pick, obj_to_drop), success
             # If the actions in action (array) do not have 4 elements, then concatenate [0] to the action array
             if len(action[0][0]) < 4:
                 # Create a column of zeros
@@ -415,4 +437,9 @@ class Executor_Diffusion(Executor):
             if step_executor > horizon:
                 print("Reached executor horizon")
                 done = True 
+        if setting == "3x3":
+            valid_state = self.valid_state_f(state)
+            success = success and valid_state
+            if not valid_state:
+                print("Invalid HANOI state")
         return obs, success

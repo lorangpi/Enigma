@@ -58,7 +58,7 @@ def termination_indicator(operator):
 
 # Load executors
 reasoner = Executor_Diffusion(id='PickPlace', 
-                   policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/07.26.40_train_diffusion_transformer_lowdim_27_oracle_lowdim/checkpoints/epoch=7650-train_loss=0.006.ckpt", 
+                   policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/07.35.41_train_diffusion_transformer_lowdim_500_oracle_lowdim/checkpoints/epoch=7950-train_loss=0.004.ckpt", 
                    I={}, 
                    Beta=termination_indicator('other'),
                    nulified_action_indexes=[],
@@ -214,6 +214,9 @@ def valid_state_f(state):
 
 reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.05828137]) * 1000
 successes = 0
+pick_place_success = 0
+pick_place_successes = []
+percentage_advancement = []
 
 def reset_gripper(env):
     print("Resetting gripper")
@@ -238,7 +241,7 @@ def reset_gripper(env):
 
 for i in range(100):
     print("Episode: ", i)
-    success = False
+    success = True
     valid_state = False
     np.random.seed(args.seed + i)
     # Reset the environment until a valid state is reached
@@ -259,24 +262,47 @@ for i in range(100):
     reasoner.load_policy()
 
     reset_gripper(env)
-    for i in range(9):
-        task, success = reasoner.execute(env, None, None, None, render=args.render, info=info)
+    pick_place_success = 0
+    # Execute the first operator in the plan
+    for j in range(7):
+        if j == 0:
+            task = ("cube1","peg3")
+        else:
+            task, success = reasoner.execute(env, None, None, None, render=args.render, info=info)
         print("Symgoal: ", task)
+        if not success:
+            break
         goal = []
         obs, success = pickplace.execute(env, obs, goal, task, render=args.render)
         if success:
-            successes += 1
-            print("Execution succeeded.\n")
+            pick_place_success += 1
+            print("+++ Object successfully picked and placed.")
+            print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {pick_place_success/7}")
         else:
             print("Execution failed.\n")
+            # Print the number of operators that were successfully executed out of the total number of operators in the plan
+            print("--- Object not picked and placed.")
+            print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {pick_place_success/7}")
             break
-        print("Success rate: ", successes/(i+1))
-        print("\n\n")
         reset_gripper(env)
+    if success:
+        successes += 1
+        print("Hanoi Execution succeeded.\n")
+    print("Success rate: ", successes/(i+1))
+    print("\n\n")
+
+    pick_place_successes.append(pick_place_success)
+    percentage_advancement.append(pick_place_success/len(7))
+
+print("Successfull pick_place: ", pick_place_successes)
+print("Percentage advancement: ", percentage_advancement)
+print("Mean Successful pick_place: ", mean(pick_place_successes))
+print("Mean Percentage advancement: ", mean(percentage_advancement))
 
 print("Success rate: ", successes/(100))
-
 # Write the results to a file results_seed_{args.seed}.txt
 with open(f"results_seed_{args.seed}.txt", 'w') as file:
     file.write("Success rate: {}\n".format(successes/(100)))
+    file.write("Mean Successful pick_place: {}\n".format(mean(pick_place_successes)))
+    file.write("Mean Percentage advancement: {}\n".format(mean(percentage_advancement)))
 

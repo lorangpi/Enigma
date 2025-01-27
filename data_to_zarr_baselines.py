@@ -309,8 +309,8 @@ if __name__ == "__main__":
             #root.create_dataset('keypoints', data=keypoints, chunks=(1000, keypoints.shape[1]), compressor=compressor)
 
         # Save directory
-        sym_save_dir = args.data_dir + '/sym_traj/' + act + '/keypoint/'
-        os.makedirs(sym_save_dir, exist_ok=True)
+        #sym_save_dir = args.data_dir + '/sym_traj/' + act + '/keypoint/'
+        #os.makedirs(sym_save_dir, exist_ok=True)
         root = zarr.open(sym_save_dir + 'keypoint.zarr', mode='w')
         data = root.create_group('data')
 
