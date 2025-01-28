@@ -405,7 +405,7 @@ class Executor_Diffusion(Executor):
                         print("Invalid task: ", action)
                         return None, success
                     obj_to_pick = "cube" + str(round(obj_to_pick))
-                    obj_to_drop = "peg" + str(round(obj_to_drop)-3) if obj_to_drop >= 4 else "cube" + str(round(obj_to_drop))
+                    obj_to_drop = "peg" + str(round(obj_to_drop)-3) if round(obj_to_drop) >= 4 else "cube" + str(round(obj_to_drop))
                     print("New task: ", (obj_to_pick, obj_to_drop))
                     env.set_task((obj_to_pick, obj_to_drop))
                     return (obj_to_pick, obj_to_drop), success
