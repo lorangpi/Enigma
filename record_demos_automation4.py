@@ -586,7 +586,7 @@ if __name__ == "__main__":
     controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
     # Create the environment
     env = suite.make(
-        "Hanoi4x4",
+        "Hanoi",
         robots="Kinova3",
         controller_configs=controller_config,
         has_renderer=args.render,
@@ -594,7 +594,7 @@ if __name__ == "__main__":
         horizon=100000000,
         use_camera_obs=False,
         render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
-        random_reset=False,
+        random_reset=True,
     )
 
     # Wrap the environment

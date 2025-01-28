@@ -92,7 +92,7 @@ if __name__ == "__main__":
                             nulified_action_indexes=[3],
                             oracle=True,
                             wrapper = ReachDropWrapper,
-                            horizon=13)
+                            horizon=29)
     drop = Executor_Diffusion(id='Drop', 
                     #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
@@ -248,7 +248,7 @@ if __name__ == "__main__":
             return env
         return dummy_env_fn
 
-    env = AsyncVectorEnv(env_fns, dummy_env_fn=gen_dummy_env())
+    env = AsyncVectorEnv(env_fns, dummy_env_fn=gen_dummy_env(), shared_memory=False)
 
     #Reset the environment
     try:
@@ -452,11 +452,12 @@ if __name__ == "__main__":
         print("Mean Percentage advancement: ", mean(percentage_advancement))
         print("Pick placce success rate: ", valid_pick_place_success/num_valid_pick_place_queries)
 
-    print("Success rate: ", hanoi_successes/(100))
-    # Write the results to a file results_seed_{args.seed}.txt
-    with open(f"results/results_neurosym_{args.demos}_seed_{args.seed}.txt", 'w') as file:
-        file.write("Success rate: {}\n".format(hanoi_successes/(100)))
-        file.write("Mean Successful pick_place: {}\n".format(mean(pick_place_successes)))
-        file.write("Mean Percentage advancement: {}\n".format(mean(percentage_advancement)))
-        file.write("Pick placce success rate: {}\n".format(valid_pick_place_success/num_valid_pick_place_queries))
+        print("Success rate: ", hanoi_successes/(100))
+        # Write the results to a file results_seed_{args.seed}.txt
+        os.makedirs("results", exist_ok=True)
+        with open(f"results/results_neurosym_{args.demos}_seed_{args.seed}.txt", 'w') as file:
+            file.write("Success rate: {}\n".format(hanoi_successes/(100)))
+            file.write("Mean Successful pick_place: {}\n".format(mean(pick_place_successes)))
+            file.write("Mean Percentage advancement: {}\n".format(mean(percentage_advancement)))
+            file.write("Pick placce success rate: {}\n".format(valid_pick_place_success/num_valid_pick_place_queries))
 
