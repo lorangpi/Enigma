@@ -304,16 +304,16 @@ if __name__ == "__main__":
                 pick_place_success += 1
                 print("+++ Object successfully picked and placed.")
                 # precentage advancement is the index of  the current task in the plan
-                percentage_advancement = find_index_task(task, ground_truth_plan)
-                print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {percentage_advancement}")
+                advancement = find_index_task(task, ground_truth_plan)
+                print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {advancement/7}")
                 if valid_pick_place_querie:
                     valid_pick_place_success += 1
             else:
                 print("Execution failed.\n")
                 # Print the number of operators that were successfully executed out of the total number of operators in the plan
                 print("--- Object not picked and placed.")
-                percentage_advancement = find_index_task(task, ground_truth_plan)
-                print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {percentage_advancement}")
+                advancement = find_index_task(task, ground_truth_plan)
+                print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {advancement/7}")
                 break
             reset_gripper(env)
         if success:
@@ -323,7 +323,7 @@ if __name__ == "__main__":
         print("\n\n")
 
         pick_place_successes.append(pick_place_success)
-        percentage_advancement.append(percentage_advancement)
+        percentage_advancement.append(advancement/7)
 
         print("Successfull pick_place: ", pick_place_successes)
         print("Percentage advancement: ", percentage_advancement)
