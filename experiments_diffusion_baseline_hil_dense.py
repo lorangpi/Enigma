@@ -200,6 +200,12 @@ if __name__ == "__main__":
 
     obs, reward, done, info = env.step([[np.zeros(4), np.zeros(4), np.zeros(4), np.zeros(4)]])
 
+    def find_index_task(task, plan):
+        for i, t in enumerate(plan):
+            if t == task:
+                return i
+        return 0
+
     def valid_state_f(state):
         state = {k: state[k] for k in state if 'on' in k}
         # Filter only the values that are True
@@ -298,7 +304,7 @@ if __name__ == "__main__":
                 pick_place_success += 1
                 print("+++ Object successfully picked and placed.")
                 # precentage advancement is the index of  the current task in the plan
-                percentage_advancement = ground_truth_plan.index(task)
+                percentage_advancement = find_index_task(task, ground_truth_plan)
                 print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {percentage_advancement}")
                 if valid_pick_place_querie:
                     valid_pick_place_success += 1
@@ -306,7 +312,7 @@ if __name__ == "__main__":
                 print("Execution failed.\n")
                 # Print the number of operators that were successfully executed out of the total number of operators in the plan
                 print("--- Object not picked and placed.")
-                percentage_advancement = ground_truth_plan.index(previous_task)
+                percentage_advancement = find_index_task(task, ground_truth_plan)
                 print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {percentage_advancement}")
                 break
             reset_gripper(env)
