@@ -36,6 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--hanoi', action='store_true', help='Use the Hanoi environment')
     parser.add_argument('--demos', type=int, default=0, help='Number of demonstrations used by the learned policies')
     args = parser.parse_args()
+    np.random.seed(args.seed)
 
     def termination_indicator(operator):
         if operator == 'pick':
