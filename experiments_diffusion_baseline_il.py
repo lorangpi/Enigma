@@ -261,7 +261,7 @@ if __name__ == "__main__":
 
         goal = None
         pick_place_success = 0
-        for symgoal in plan_hoirzon:
+        for symgoal in ground_truth_plan:
             num_valid_pick_place_queries += 1
             obs, success = hanoi_policy.execute(env, obs, goal, symgoal, render=args.render)
             if success:
