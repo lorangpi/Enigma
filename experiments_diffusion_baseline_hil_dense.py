@@ -280,6 +280,7 @@ if __name__ == "__main__":
         reset_gripper(env)
         pick_place_success = 0
         # Execute the first operator in the plan
+        advancement = 0
         for j in range(7):
             if j == 0:
                 task = ("cube1","peg3")
