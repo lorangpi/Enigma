@@ -284,7 +284,7 @@ if __name__ == "__main__":
         for j in range(7):
             if j == 0:
                 task = ("cube1","peg3")
-                previous_task = ("cube1","peg3")
+                previous_task = None
             else:
                 previous_task = task
                 task, success = reasoner.execute(env, None, None, None, render=args.render, info=info)
