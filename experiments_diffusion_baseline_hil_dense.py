@@ -203,7 +203,7 @@ if __name__ == "__main__":
     def find_index_task(task, plan):
         for i, t in enumerate(plan):
             if t[0] == task[0] and t[1] == task[1]:
-                return i
+                return i+1
         return 0
 
     def valid_state_f(state):
