@@ -277,13 +277,17 @@ if __name__ == "__main__":
         for j in range(7):
             if j == 0:
                 task = ("cube1","peg3")
+                previous_task = ("cube1","peg3")
             else:
+                previous_task = task
                 task, success = reasoner.execute(env, None, None, None, render=args.render, info=info)
             print("Symgoal: ", task)
 
             valid_pick_place_querie = task == ground_truth_plan[j]
             if valid_pick_place_querie:
                 num_valid_pick_place_queries += 1
+            if task == previous_task:
+                success = False
 
             if not success:
                 break
@@ -293,14 +297,17 @@ if __name__ == "__main__":
             if success:
                 pick_place_success += 1
                 print("+++ Object successfully picked and placed.")
-                print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {pick_place_success/7}")
+                # precentage advancement is the index of  the current task in the plan
+                percentage_advancement = ground_truth_plan.index(task)
+                print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {percentage_advancement}")
                 if valid_pick_place_querie:
                     valid_pick_place_success += 1
             else:
                 print("Execution failed.\n")
                 # Print the number of operators that were successfully executed out of the total number of operators in the plan
                 print("--- Object not picked and placed.")
-                print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {pick_place_success/7}")
+                percentage_advancement = ground_truth_plan.index(previous_task)
+                print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {percentage_advancement}")
                 break
             reset_gripper(env)
         if success:
@@ -310,7 +317,7 @@ if __name__ == "__main__":
         print("\n\n")
 
         pick_place_successes.append(pick_place_success)
-        percentage_advancement.append(pick_place_success/len(7))
+        percentage_advancement.append(percentage_advancement)
 
         print("Successfull pick_place: ", pick_place_successes)
         print("Percentage advancement: ", percentage_advancement)

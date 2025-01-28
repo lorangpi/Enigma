@@ -61,8 +61,8 @@ if __name__ == "__main__":
                             #policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
                             # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
-                            #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
-                            policy=f"./policies/neurosym_{args.demos}/reach_pick.ckpt",
+                            policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
+                            #policy=f"./policies/neurosym_{args.demos}/reach_pick.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_pick'),
                             nulified_action_indexes=[3],
@@ -73,8 +73,8 @@ if __name__ == "__main__":
                     #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
-                    #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.37_train_diffusion_transformer_lowdim_5_grasp_lowdim/checkpoints/epoch=7300-train_loss=0.021.ckpt",
-                    policy=f"./policies/neurosym_{args.demos}/grasp.ckpt",
+                    policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.37_train_diffusion_transformer_lowdim_5_grasp_lowdim/checkpoints/epoch=7300-train_loss=0.021.ckpt",
+                    #policy=f"./policies/neurosym_{args.demos}/grasp.ckpt",
                     I={}, 
                     Beta=termination_indicator('pick'),
                     nulified_action_indexes=[0, 1],
@@ -85,20 +85,20 @@ if __name__ == "__main__":
                             #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
                             # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
-                            #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
-                            policy=f"./policies/neurosym_{args.demos}/reach_drop.ckpt",
+                            policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
+                            #policy=f"./policies/neurosym_{args.demos}/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_drop'),
                             nulified_action_indexes=[3],
                             oracle=True,
                             wrapper = ReachDropWrapper,
-                            horizon=29)
+                            horizon=19)
     drop = Executor_Diffusion(id='Drop', 
                     #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
-                    #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
-                    policy=f"./policies/neurosym_{args.demos}/drop.ckpt",
+                    policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
+                    #policy=f"./policies/neurosym_{args.demos}/drop.ckpt",
                     I={}, 
                     Beta=termination_indicator('drop'),
                     nulified_action_indexes=[0, 1],

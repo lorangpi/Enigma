@@ -67,7 +67,7 @@ if __name__ == "__main__":
                     nulified_action_indexes=[],
                     oracle=False,
                     wrapper = DropWrapper,
-                    horizon=500)
+                    horizon=50)
 
     Move_action = [hanoi_policy]
 
@@ -282,7 +282,7 @@ if __name__ == "__main__":
         print("\n\n")
 
         pick_place_successes.append(pick_place_success)
-        percentage_advancement.append(pick_place_success/len(7))
+        percentage_advancement.append(pick_place_success/7)
 
         print("Successfull pick_place: ", pick_place_successes)
         print("Percentage advancement: ", percentage_advancement)

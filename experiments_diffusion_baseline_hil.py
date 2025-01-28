@@ -77,7 +77,7 @@ if __name__ == "__main__":
                     nulified_action_indexes=[],
                     oracle=True,
                     wrapper = DropWrapper,
-                    horizon=50)
+                    horizon=40)
 
     Move_action = [pickplace]
 
@@ -310,7 +310,7 @@ if __name__ == "__main__":
         print("\n\n")
 
         pick_place_successes.append(pick_place_success)
-        percentage_advancement.append(pick_place_success/len(7))
+        percentage_advancement.append(pick_place_success/7)
 
         print("Successfull pick_place: ", pick_place_successes)
         print("Percentage advancement: ", percentage_advancement)
