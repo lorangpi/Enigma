@@ -313,7 +313,7 @@ if __name__ == "__main__":
                 print("Execution failed.\n")
                 # Print the number of operators that were successfully executed out of the total number of operators in the plan
                 print("--- Object not picked and placed.")
-                advancement = find_index_task(task, ground_truth_plan)
+                advancement = find_index_task(previous_task, ground_truth_plan)
                 print(f"Successfull pick_place: {pick_place_success}, Out of: {7}, Percentage advancement: {advancement/7}")
                 break
             reset_gripper(env)
