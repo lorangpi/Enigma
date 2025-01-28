@@ -419,7 +419,7 @@ if __name__ == "__main__":
                 print("\tExecuting action: ", action_step.id)
                 symgoal = (obj_to_pick, obj_to_drop)
                 goal = []
-                obs, success = action_step.execute(env, obs, goal, symgoal, render=args.render, setting="4x3"
+                obs, success = action_step.execute(env, obs, goal, symgoal, render=args.render, setting="4x3")
                 if not success:
                     print("Execution failed.\n")
                     #break
