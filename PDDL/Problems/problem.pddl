@@ -1,0 +1,25 @@
+(define (problem hanoi-problem)
+  (:domain hanoi)
+  (:objects disk1 disk2 disk3 peg1 peg2 peg3 - obj)
+  
+  (:init
+    (p1 disk1 peg1)
+    (p1 disk2 peg1)
+    (p1 disk3 peg1)
+    (b0 disk1 peg1)
+    (b0 disk2 peg1)
+    (b0 disk3 peg1)
+    (b1 disk1 peg2)
+    (b1 disk2 peg2)
+    (b1 disk3 peg2)
+    (b1 disk1 peg3)
+    (b1 disk2 peg3)
+    (b1 disk3 peg3)
+  )
+  
+  (:goal (and
+    (p1 disk1 peg3)
+    (p1 disk2 peg3)
+    (p1 disk3 peg3)
+  ))
+)

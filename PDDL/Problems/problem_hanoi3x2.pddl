@@ -1,0 +1,11 @@
+(define (problem hanoi-problem)
+  (:domain hanoi)
+  (:objects o0 o1 o2 o3 o4 o5 - object)
+  (:init 
+    (p0 o0) (p0 o4) (p0 o5) (p1 o0 o1) (p1 o1 o2) (p1 o2 o3) (b0 o0 o1) (b0 o0 o2) (b0 o1 o2) 
+    (b0 o0 o3) (b0 o0 o4) (b0 o0 o5)
+    (b0 o1 o3) (b0 o1 o4) (b0 o1 o5)
+    (b0 o2 o3) (b0 o2 o4) (b0 o2 o5)
+  )
+  (:goal (and  (p0 o0) (p0 o3) (p0 o4) (p1 o0 o1) (p1 o1 o2) (p1 o2 o5)))
+)
