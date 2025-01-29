@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--hanoi', action='store_true', help='Use the Hanoi environment')
     parser.add_argument('--demos', type=int, default=0, help='Number of demonstrations used by the learned policies')
     args = parser.parse_args()
-    np.random.seed(args.seed)
+    #np.random.seed(args.seed)
 
     def termination_indicator(operator):
         if operator == 'pick':
@@ -93,7 +93,7 @@ if __name__ == "__main__":
                             nulified_action_indexes=[3],
                             oracle=True,
                             wrapper = ReachDropWrapper,
-                            horizon=26)
+                            horizon=17)
     drop = Executor_Diffusion(id='Drop', 
                     #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW

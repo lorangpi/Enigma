@@ -388,8 +388,8 @@ if __name__ == "__main__":
 
             print("Initial predicates: ", init_predicates)
 
-            add_predicates_to_pddl('problem_static4x3.pddl', init_predicates, problem_name="problem_dummy4x3.pddl")
-            plan, _ = call_planner("domain_asp", "problem_dummy4x3")
+            add_predicates_to_pddl('problem_static5x4.pddl', init_predicates, problem_name="problem_dummy5x4.pddl")
+            plan, _ = call_planner("domain_asp", "problem_dummy5x4")
         print("Plan: ", plan)
 
         pick_place_success = 0

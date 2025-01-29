@@ -92,7 +92,7 @@ if __name__ == "__main__":
                             nulified_action_indexes=[3],
                             oracle=True,
                             wrapper = ReachDropWrapper,
-                            horizon=26)
+                            horizon=15)
     drop = Executor_Diffusion(id='Drop', 
                     #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
@@ -388,8 +388,8 @@ if __name__ == "__main__":
 
             print("Initial predicates: ", init_predicates)
 
-            add_predicates_to_pddl('problem_static4x3.pddl', init_predicates, problem_name="problem_dummy4x3.pddl")
-            plan, _ = call_planner("domain_asp", "problem_dummy4x3")
+            add_predicates_to_pddl('problem_static4x4.pddl', init_predicates, problem_name="problem_dummy4x4.pddl")
+            plan, _ = call_planner("domain_asp", "problem_dummy4x4")
         print("Plan: ", plan)
 
         pick_place_success = 0
@@ -419,7 +419,7 @@ if __name__ == "__main__":
                 print("\tExecuting action: ", action_step.id)
                 symgoal = (obj_to_pick, obj_to_drop)
                 goal = []
-                obs, success = action_step.execute(env, obs, goal, symgoal, render=args.render, setting="4x3")
+                obs, success = action_step.execute(env, obs, goal, symgoal, render=args.render, setting="4x4")
                 if not success:
                     print("Execution failed.\n")
                     #break

@@ -4,8 +4,10 @@
 (:init 
 (p1 o5 o5 )
 (p1 o4 o4 )
+(p1 o3 o3 )
 (p1 o1 o1 )
-(p1 o6 o3 )
+(p1 o7 o8 )
+(p1 o6 o7 )
 (p1 o2 o6 )
 (p1 o1 o2 )
 
