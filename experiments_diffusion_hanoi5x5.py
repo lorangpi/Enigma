@@ -336,7 +336,7 @@ if __name__ == "__main__":
         #print(state)
         return True
 
-    reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.05828137]) * 1000
+    reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.20828137]) * 1000
     hanoi_successes = 0
     num_valid_pick_place_queries = 0
     pick_place_success = 0
