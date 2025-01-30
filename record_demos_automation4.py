@@ -12,7 +12,7 @@ from graph_learner import GraphLearner
 def to_datestring(unixtime: int, format='%Y-%m-%d_%H:%M:%S'):
 	return datetime.utcfromtimestamp(unixtime).strftime(format)
 
-reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.05828137]) * 1000
+reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.20828137]) * 1000
 
 class RecordDemos(gym.Wrapper):
     def __init__(self, env, args, randomize=True):
@@ -269,7 +269,10 @@ class RecordDemos(gym.Wrapper):
                 object_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.place_to_drop]])
             dist_xy_plan = object_pos[:2] - gripper_pos[:2]
             dist_xy_plan = self.cap(dist_xy_plan)
-            action = 5*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 5*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.5*np.linalg.norm(dist_xy_plan), 3), [0]])
+            if self.args.expert:
+                action = 7*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 7*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.1*np.linalg.norm(dist_xy_plan), 3), [0]])
+            else:            
+                action = 5*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 5*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.5*np.linalg.norm(dist_xy_plan), 3), [0]])
             action = action * 1000
             next_obs, _, _, _, _  = self.env.step(action)
             self.env.render() if self.render_init else None
@@ -342,20 +345,20 @@ class RecordDemos(gym.Wrapper):
         # Reset the environment
         self.episode_buffer = dict() # 1 episode here consists of a trajectory between 2 symbolic nodes
         self.symbolic_buffer = list()
-        if self.args.expert:
-            self.place_to_drop = "peg1"
-            while self.place_to_drop == "peg1":
-                try:
-                    obs, _ = self.env.reset()
-                except:
-                    obs = self.env.reset()
-                self.sample_task()
-        else:
-            try:
-                obs, _ = self.env.reset()
-            except:
-                obs = self.env.reset()
-            self.sample_task()
+        # if self.args.expert:
+        #     self.place_to_drop = "peg1"
+        #     while self.place_to_drop == "peg1":
+        #         try:
+        #             obs, _ = self.env.reset()
+        #         except:
+        #             obs = self.env.reset()
+        #         self.sample_task()
+        #else:
+        try:
+            obs, _ = self.env.reset()
+        except:
+            obs = self.env.reset()
+        self.sample_task()
         self.sim.forward()
         return obs
 
@@ -586,7 +589,7 @@ if __name__ == "__main__":
     controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
     # Create the environment
     env = suite.make(
-        "Hanoi",
+        "Hanoi7x5",
         robots="Kinova3",
         controller_configs=controller_config,
         has_renderer=args.render,

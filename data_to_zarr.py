@@ -161,6 +161,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/', help='Data Directory')
     parser.add_argument('--data_dir2', type=str, default="", help='Data Directory of second set of demonstrations')
+    parser.add_argument('--data_dir3', type=str, default="", help='Data Directory of second set of demonstrations')
+    parser.add_argument('--data_dir4', type=str, default="", help='Data Directory of second set of demonstrations')
+    parser.add_argument('--data_dir5', type=str, default="", help='Data Directory of second set of demonstrations')
+    parser.add_argument('--data_dir6', type=str, default="", help='Data Directory of second set of demonstrations')
     parser.add_argument('--filter_actions', type=bool, default=False, help='Filter actions')
     parser.add_argument('--num_demos', type=int, default=0, help='Number of demonstrations')
     parser.add_argument('--save_dir', type=str, default='', help='Save Directory')
@@ -171,6 +175,34 @@ if __name__ == "__main__":
     if args.data_dir2 != "":
         data_buffers2 = load_data_from_zip(args.data_dir2 + '/traces/')
         for act, buffer in data_buffers2.items():
+            if act in data_buffers:
+                data_buffers[act] += buffer
+            else:
+                data_buffers[act] = buffer
+    if args.data_dir3 != "":
+        data_buffers3 = load_data_from_zip(args.data_dir3 + '/traces/')
+        for act, buffer in data_buffers3.items():
+            if act in data_buffers:
+                data_buffers[act] += buffer
+            else:
+                data_buffers[act] = buffer
+    if args.data_dir4 != "":
+        data_buffers4 = load_data_from_zip(args.data_dir4 + '/traces/')
+        for act, buffer in data_buffers4.items():
+            if act in data_buffers:
+                data_buffers[act] += buffer
+            else:
+                data_buffers[act] = buffer
+    if args.data_dir5 != "":
+        data_buffers5 = load_data_from_zip(args.data_dir5 + '/traces/')
+        for act, buffer in data_buffers5.items():
+            if act in data_buffers:
+                data_buffers[act] += buffer
+            else:
+                data_buffers[act] = buffer
+    if args.data_dir6 != "":
+        data_buffers6 = load_data_from_zip(args.data_dir6 + '/traces/')
+        for act, buffer in data_buffers6.items():
             if act in data_buffers:
                 data_buffers[act] += buffer
             else:

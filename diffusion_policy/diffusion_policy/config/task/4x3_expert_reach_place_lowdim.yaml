@@ -1,4 +1,4 @@
-name: 4x4_expert_reach_place_lowdim
+name: 4x3_expert_reach_place_lowdim
 
 obs_dim: 3
 action_dim: 3
@@ -9,7 +9,7 @@ env_runner:
 
 dataset:
   _target_: diffusion_policy.dataset.pick_place_dataset.PickPlaceLowdimDataset
-  zarr_path: ../data/continual_learning/4x4/hf_traj/reach_place/keypoint/keypoint.zarr
+  zarr_path: ../data/continual_learning/4x3/hf_traj/reach_place/keypoint/keypoint.zarr
   horizon: ${horizon}
   pad_before: ${eval:'${n_obs_steps}-1+${n_latency_steps}'}
   pad_after: ${eval:'${n_action_steps}-1'}

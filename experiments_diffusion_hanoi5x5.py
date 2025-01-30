@@ -190,7 +190,7 @@ if __name__ == "__main__":
             horizon=20000 if args.hanoi else 2000,
             use_camera_obs=False,
             render_camera="frontview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
-            random_reset=False,
+            random_reset=True,
         )
 
         # Wrap the environment
