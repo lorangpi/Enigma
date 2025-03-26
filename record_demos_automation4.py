@@ -359,7 +359,7 @@ class RecordDemos(gym.Wrapper):
         except:
             obs = self.env.reset()
         self.sample_task()
-        self.sim.forward()
+        self.env.sim.forward()
         return obs
 
     def next_episode(self):

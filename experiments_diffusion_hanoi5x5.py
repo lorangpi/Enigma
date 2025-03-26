@@ -68,7 +68,7 @@ if __name__ == "__main__":
                             nulified_action_indexes=[3],
                             oracle=True,
                             wrapper = ReachPickWrapper,
-                            horizon=10)
+                            horizon=16)
     grasp = Executor_Diffusion(id='Grasp', 
                     #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW

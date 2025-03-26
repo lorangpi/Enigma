@@ -68,7 +68,7 @@ if __name__ == "__main__":
                             nulified_action_indexes=[3],
                             oracle=True,
                             wrapper = ReachPickWrapper,
-                            horizon=10)
+                            horizon=14)
     grasp = Executor_Diffusion(id='Grasp', 
                     #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
@@ -80,13 +80,14 @@ if __name__ == "__main__":
                     nulified_action_indexes=[0, 1],
                     oracle=True,
                     wrapper = PickWrapper,
-                    horizon=10)
+                    horizon=14)
     reach_drop = Executor_Diffusion(id='ReachDrop', 
                             #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
                             # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
                             #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
-                            policy=f"./policies/neurosym_{args.demos}/reach_drop.ckpt",
+                            #policy=f"./policies/neurosym_{args.demos}/reach_drop.ckpt",
+                            policy="./policies/expert/7x5/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_drop'),
                             nulified_action_indexes=[3],
@@ -104,7 +105,7 @@ if __name__ == "__main__":
                     nulified_action_indexes=[0, 1],
                     oracle=True,
                     wrapper = DropWrapper,
-                    horizon=10)
+                    horizon=16)
 
 
     # pickplace = Executor_Diffusion(id='PickPlace', 
@@ -190,7 +191,7 @@ if __name__ == "__main__":
             horizon=20000 if args.hanoi else 2000,
             use_camera_obs=False,
             render_camera="frontview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
-            random_reset=False,
+            random_reset=True,
         )
 
         # Wrap the environment

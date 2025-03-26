@@ -86,7 +86,8 @@ if __name__ == "__main__":
                             # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
                             #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
-                            policy=f"./policies/neurosym_{args.demos}/reach_drop.ckpt",
+                            #policy=f"./policies/neurosym_{args.demos}/reach_drop.ckpt",
+                            policy="./policies/expert/5x4/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_drop'),
                             nulified_action_indexes=[3],
@@ -336,7 +337,7 @@ if __name__ == "__main__":
         #print(state)
         return True
 
-    reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.20828137]) * 1000
+    reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.10828137]) * 1000
     hanoi_successes = 0
     num_valid_pick_place_queries = 0
     pick_place_success = 0
