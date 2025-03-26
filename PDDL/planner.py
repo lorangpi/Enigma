@@ -36,7 +36,7 @@ def call_planner(domain, problem, structure="pddl"):
     domain_path = pddl_dir + os.sep + domain_dir + os.sep + domain + ".pddl"
     problem_path = pddl_dir + os.sep + problem_dir + os.sep + problem + ".pddl"
     if structure == "pddl":
-        run_script = f"../Metric-FF-v2.1/./ff -o {domain_path} -f {problem_path} -s 0"
+        run_script = f"~/plorang/robosuite/enigma/Enigma/Metric-FF-v2.1/./ff -o {domain_path} -f {problem_path} -s 0"
         output = subprocess.getoutput(run_script)
         #print("Output = ", output)
         if "unsolvable" in output or "goal can be simplified to FALSE" in output:
