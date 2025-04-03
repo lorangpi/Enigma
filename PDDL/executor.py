@@ -288,8 +288,13 @@ class Executor_Diffusion(Executor):
             oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
         elif action_step == "Drop":
             oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+        elif action_step == "ObjCentric":
+            oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])[1:] + [0, 80]
+            oracle *= -1
         else:
             oracle = obs
+        #print("Oracle shape: ", oracle.shape)
+        #print("Oracle: ", oracle)
         return oracle
 
     def keypoint_mapping(self, obs, action_step="PickPlace"):
@@ -314,7 +319,7 @@ class Executor_Diffusion(Executor):
 
     def prepare_obs(self, obs, action_step="PickPlace"):
         #obs_dim = {"PickPlace": 10, "ReachPick": 6, "Grasp": 3, "ReachDrop": 6, "Drop": 3}
-        obs_dim = {"PickPlace": 7, "ReachPick": 3, "Grasp": 2, "ReachDrop": 3, "Drop": 2}
+        obs_dim = {"PickPlace": 7, "ReachPick": 3, "Grasp": 2, "ReachDrop": 3, "Drop": 2, "ObjCentric": 2}
         if action_step not in obs_dim.keys():
             return obs
         returned_obs = np.zeros((obs.shape[0], len(obs[0]), obs_dim[action_step]))
@@ -332,6 +337,19 @@ class Executor_Diffusion(Executor):
         #print("Returned obs shape: ", returned_obs.shape)
         #print("Original obs shape: ", obs.shape)
         return returned_obs
+
+    def prepare_act(self, act, action_step="PickPlace"):
+        if action_step == "ObjCentric":
+            return act * 1.1
+        return act
+    
+    def control_void_act(self, action, obs):
+        if len(action[0][0]) < 4:
+            # Concatenate zeros_colum to action at self.nulified_action_indexes
+            for index in self.nulified_action_indexes:
+                error = obs[0][-1][index] - self.control_static[index]
+                action = np.insert(action, index, -error, axis=2)
+        return action
 
     def obs_base_from_info(self, info):
         obs_base = []
@@ -356,11 +374,12 @@ class Executor_Diffusion(Executor):
             return False
         return True
 
-    def execute(self, env, obs, goal, symgoal, render=False, info = {}, setting="3x3"):
+    def execute(self, env, obs, goal, symgoal, render=False, info = {}, setting="3x3", obj_centric=False):
         '''
         This method is responsible for executing the policy on the given state. It takes a state as a parameter and returns the action 
         produced by the policy on that state. 
         '''
+        self.control_static = {0: obs[0][-1][0], 1: obs[0][-1][1], 2: obs[0][-1][2], 3: obs[0][-1][3]}
         horizon = self.horizon if self.horizon is not None else 500
         print("\tTask goal: ", symgoal)
 
@@ -376,6 +395,7 @@ class Executor_Diffusion(Executor):
         success = False 
         while not done:
             # Prepare the observation for the policy
+            obs_copy = np.copy(obs)
             if self.oracle:
                 obs = self.prepare_obs(obs, action_step=self.id)
             if obs_base:
@@ -410,16 +430,13 @@ class Executor_Diffusion(Executor):
                     env.set_task((obj_to_pick, obj_to_drop))
                     return (obj_to_pick, obj_to_drop), success
             # If the actions in action (array) do not have 4 elements, then concatenate [0] to the action array
-            if len(action[0][0]) < 4:
-                # Create a column of zeros
-                zeros_column = np.zeros((action.shape[0], action.shape[1], 1))
-                # Concatenate the zeros column to the original array
-                #action = np.concatenate((action, zeros_column), axis=2)
-                # Concatenate zeros_colum to action at self.nulified_action_indexes
-                for index in self.nulified_action_indexes:
-                    action = np.insert(action, index, 0, axis=2)
+            action = self.control_void_act(action, obs_copy)
             #print("Action: ", action)
             # step env
+            #print("Action: ", action)
+            for i in range(len(action[0])):
+                action = self.prepare_act(action, action_step=self.id)
+            #print("Transformed action: ", action)
             try: 
                 obs, reward, terminated, truncated, info = env.step(action)
                 #done = terminated or truncated

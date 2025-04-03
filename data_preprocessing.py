@@ -88,6 +88,7 @@ def prepare_data_for_dataset(trajectories, args):
         if not trajectory:
             continue
         episode = trajectory[0]
+        #print("episode: ", episode)
         # Assuming each step has observations, actions, next_obs, rewards, and done flags
         if args.lxm:
             # episode in the format of (act, obs, next_act, next_obs, etc...)
@@ -158,7 +159,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Load the buffer from the zip file
-    data_buffers = load_data_from_zip(args.data_dir + '/traces/')
+    try:
+        data_buffers = load_data_from_zip(args.data_dir + '/traces/')
+    except FileNotFoundError:
+        data_buffers = load_data_from_zip(args.data_dir)
 
     # Convert the buffer to a dict
     # dict_format_buffer = convert_to_dict_format(data_buffer)
