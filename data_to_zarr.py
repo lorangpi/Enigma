@@ -3,7 +3,19 @@ import numcodecs
 import zipfile, pickle, copy, json, argparse, os
 import numpy as np
 from datasets import Dataset, Features, Value, ClassLabel, Sequence
-from imitation.data.types import TrajectoryWithRew, TrajectoryWithKeypoint
+from imitation.data.types import TrajectoryWithRew
+import dataclasses
+
+@dataclasses.dataclass(frozen=True, eq=False)
+class TrajectoryWithKeypoint(TrajectoryWithRew):
+    """A `Trajectory` that additionally includes reward information."""
+
+    keypoint: np.ndarray
+    """Reward, shape (trajectory_len, ). dtype float."""
+
+    def __post_init__(self):
+        """Performs input validation, including for rews."""
+        super().__post_init__()
 
 
 class GoalTrajectory(TrajectoryWithRew):
