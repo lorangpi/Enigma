@@ -260,6 +260,9 @@ if __name__ == "__main__":
         print("Num of trajectories: ", len(demo_trajectories_for_act))
         print(demo_trajectories_for_act[0].acts)
         ee_dim = len(demo_trajectories_for_act[0].acts[0]) - len(constant_indexes)
+        # flatten observation space if it is a more than 1D array
+        if len(demo_trajectories_for_act[0].obs[0].shape) > 1:
+            demo_trajectories_for_act[0].obs = np.array([obs.flatten() for obs in demo_trajectories_for_act[0].obs])
         obs_dim = len(demo_trajectories_for_act[0].obs[0])
         keypoint_dim = len(demo_trajectories_for_act[0].keypoint[0])
         print("obs_dim: ", obs_dim, " keypoint_dim: ", keypoint_dim, " ee_dim: ", ee_dim)
