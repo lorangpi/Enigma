@@ -110,7 +110,7 @@ def prepare_data_for_dataset(trajectories, args):
         episode = trajectory[0]
         if args.lxm:
             # episode in the format of (act, obs, next_act, next_obs, etc...)
-            obs = np.array([episode[i] for i in range(1, len(episode), 2)])
+            obs = np.array([np.reshape(episode[i], -1) if len(episode[i].shape) > 1 else episode[i] for i in range(1, len(episode), 2)])
             acts = np.array([episode[i] for i in range(2, len(episode), 2)])
             keypoint = np.array([[0.0] for i in range(1, len(episode), 2)])
             rews = np.array([0.0 for _ in range(1, len(episode)//2)])
@@ -260,10 +260,6 @@ if __name__ == "__main__":
         print("Num of trajectories: ", len(demo_trajectories_for_act))
         print(demo_trajectories_for_act[0].acts)
         ee_dim = len(demo_trajectories_for_act[0].acts[0]) - len(constant_indexes)
-        # flatten observation space if it is a more than 1D array
-        if len(demo_trajectories_for_act[0].obs[0].shape) > 1:
-            for i in range(len(demo_trajectories_for_act[0].obs)):
-                demo_trajectories_for_act[0].obs[i] = np.reshape(demo_trajectories_for_act[0].obs[i], -1)
         obs_dim = len(demo_trajectories_for_act[0].obs[0])
         keypoint_dim = len(demo_trajectories_for_act[0].keypoint[0])
         print("obs_dim: ", obs_dim, " keypoint_dim: ", keypoint_dim, " ee_dim: ", ee_dim)
