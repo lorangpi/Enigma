@@ -400,6 +400,8 @@ class Executor_Diffusion(Executor):
                 obs = self.prepare_obs(obs, action_step=self.id)
             if obs_base:
                 obs = self.obs_base_from_info(info)
+            #else:
+            #    print("Observation: ", obs)
             # create obs dict
             np_obs_dict = {
                 'obs': obs.astype(np.float32)
