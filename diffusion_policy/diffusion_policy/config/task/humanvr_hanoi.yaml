@@ -9,7 +9,7 @@ env_runner:
 
 dataset:
   _target_: diffusion_policy.dataset.pick_place_dataset.PickPlaceLowdimDataset
-  zarr_path: ../vr_data/SavedTrajectories_human/hf_traj/human_trajectories/keypoint/keypoint.zarr
+  zarr_path: ../vr_data/Hanoi/hf_traj/human_trajectories/keypoint/keypoint.zarr
   horizon: ${horizon}
   pad_before: ${eval:'${n_obs_steps}-1+${n_latency_steps}'}
   pad_after: ${eval:'${n_action_steps}-1'}

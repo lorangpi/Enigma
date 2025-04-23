@@ -59,13 +59,14 @@ if __name__ == "__main__":
 
     # Load executors
     reach_pick = Executor_Diffusion(id='ReachPick', 
-                            policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
+                            #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
+                            policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.54_train_diffusion_transformer_lowdim_10_reach_pick_lowdim/checkpoints/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_pick'),
                             nulified_action_indexes=[3],
                             oracle=True,
                             wrapper = ReachPickWrapper,
-                            horizon=7)
+                            horizon=12)
     grasp = Executor_Diffusion(id='Grasp', 
                     policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.37_train_diffusion_transformer_lowdim_5_grasp_lowdim/checkpoints/epoch=7300-train_loss=0.021.ckpt",
                     I={}, 
@@ -75,13 +76,15 @@ if __name__ == "__main__":
                     wrapper = PickWrapper,
                     horizon=10)
     reach_drop = Executor_Diffusion(id='ObjCentric', 
-                            policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/2025.04.02/13.13.29_train_diffusion_transformer_lowdim_humanvr_hanoi/checkpoints/latest.ckpt",
+                            policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/2025.04.20/23.13.53_train_diffusion_transformer_lowdim_humanvr_hanoi/checkpoints/latest.ckpt",
+                            #policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/2025.04.17/11.04.26_train_diffusion_transformer_lowdim_humanvr_hanoi/checkpoints/latest.ckpt",
+                            #policy="/home/lorangpi/Enigma/diffusion_policy/data/outputs/2025.04.17/20.03.56_train_diffusion_transformer_lowdim_humanvr_kitchen_place/checkpoints/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_drop'),
                             nulified_action_indexes=[0,3],
                             oracle=True,
                             wrapper = ReachDropWrapper,
-                            horizon=25)
+                            horizon=17)
     drop = Executor_Diffusion(id='Drop', 
                     policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
                     I={}, 

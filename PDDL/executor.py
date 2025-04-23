@@ -289,8 +289,12 @@ class Executor_Diffusion(Executor):
         elif action_step == "Drop":
             oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
         elif action_step == "ObjCentric":
-            oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])[1:] + [0, 80]
-            oracle *= -1
+            oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])[1:] + [0, 120]
+            #oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]]) #+ [0, 0, 10]
+            #oracle *= -1.
+            oracle *= -1.
+            #oracle += [0, 0, 120]
+            #oracle /= 1000
         else:
             oracle = obs
         #print("Oracle shape: ", oracle.shape)
@@ -340,7 +344,13 @@ class Executor_Diffusion(Executor):
 
     def prepare_act(self, act, action_step="PickPlace"):
         if action_step == "ObjCentric":
-            return act * 1.1
+            # multiply non nulified action by 1000
+            for i in range(len(act[0])):
+                for j in range(len(act[0][i])):
+                    if j not in self.nulified_action_indexes:
+                        act[0][i][j] *= 1.3
+            return act
+        #act = 1.3 * act
         return act
     
     def control_void_act(self, action, obs):
