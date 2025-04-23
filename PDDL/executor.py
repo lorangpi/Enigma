@@ -17,6 +17,8 @@ from diffusion_policy.workspace.base_workspace import BaseWorkspace
 from diffusion_policy.workspace.train_diffusion_transformer_lowdim_workspace import TrainDiffusionTransformerLowdimWorkspace
 set_random_seed(0, using_cuda=True)
 
+from hanoi import hanoi_actions # import get_all_pos() and move_arm()
+
 class Executor():
 	def __init__(self, id, mode, I=None, Beta=None, Circumstance=None, basic=False):
 		super().__init__()
@@ -63,14 +65,6 @@ class Executor_Diffusion_Diarc(Executor):
         policy.eval()
         policy.reset()
         self.model = policy
-    
-    def get_obs(self):
-        # TODO: Get the observation from Diarc
-        # The obs is supposed to be a list of each environment 4 latest steps observations (parallele runing), 
-        # but we only consider one environment here. Thus, the obs should be obs = [[obs1, obs2, obs3, obs4]]
-        # obs = Diarc.get_obs()
-        obs = None
-        return obs
 
     def obs_mapping(self, obs, action_step="PickPlace"):
         # TODO: add the mapping of the input observation to the oracle (i.e., the input obs of the policy)
@@ -93,16 +87,12 @@ class Executor_Diffusion_Diarc(Executor):
         else:
             oracle = obs
         return oracle
-    
-    def step(self, action):
-        # TODO: Send the action to Diarc and get the observation
-        obs, reward, done, info = None, None, None, None
-        return obs, reward, done, info
 
     def get_success(self, action_step="PickPlace"):
         # TODO: Get the success of the action step (i.e., if the action step is successful and terminated or not)
         success = False
-        return success
+        done = False
+        return success, done
 
     def prepare_obs(self, obs, action_step="PickPlace"):
         obs_dim = {"PickPlace": 7, "ReachPick": 3, "Grasp": 2, "ReachDrop": 3, "Drop": 2}
@@ -118,9 +108,6 @@ class Executor_Diffusion_Diarc(Executor):
         #print("Returned obs shape: ", returned_obs.shape)
         #print("Original obs shape: ", obs.shape)
         return returned_obs
-
-    def prepare_act(self, act, action_step="PickPlace"):
-        return act
     
     def control_void_act(self, action, obs):
         if len(action[0][0]) < 4:
@@ -182,15 +169,15 @@ class Executor_Diffusion_Diarc(Executor):
             # If the actions in action (array) do not have 4 elements, then concatenate [0] to the action array
             action = self.control_void_act(action, obs_copy)
             # Step env
+            obs = []
             for i in range(len(action[0])):
-                action = self.prepare_act(action, action_step=self.id)
-            obs, reward, done, info = env.step(action)
+                move_arm(action)
+                obs.append(get_all_pos())
+            obs = np.array([obs])
+            success, done = self.get_success(action_step=self.id)
+            step_executor += 1
             if done:
                 print("Environment terminated")
-            step_executor += 1
-            #state = info[0]['state'][-1]
-            #success = self.Beta(state, symgoal)
-            success = success or info[0]['is_success'][-1]
             if success:
                 done = True
             if step_executor > horizon:
