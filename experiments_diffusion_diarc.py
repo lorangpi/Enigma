@@ -61,11 +61,9 @@ if __name__ == "__main__":
 
     # Load executors
     reach_pick = Executor_Diffusion(id='ReachPick', 
-                            #policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
-                            # WORKING POLICY BELOW
+                           # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
                             policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
-                            #policy=f"./policies/neurosym_{args.demos}/reach_pick.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_pick'),
                             nulified_action_indexes=[3],
@@ -73,11 +71,9 @@ if __name__ == "__main__":
                             wrapper = ReachPickWrapper,
                             horizon=10)
     grasp = Executor_Diffusion(id='Grasp', 
-                    #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
                     policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.37_train_diffusion_transformer_lowdim_5_grasp_lowdim/checkpoints/epoch=7300-train_loss=0.021.ckpt",
-                    #policy=f"./policies/neurosym_{args.demos}/grasp.ckpt",
                     I={}, 
                     Beta=termination_indicator('pick'),
                     nulified_action_indexes=[0, 1],
@@ -85,11 +81,9 @@ if __name__ == "__main__":
                     wrapper = PickWrapper,
                     horizon=10)
     reach_drop = Executor_Diffusion(id='ReachDrop', 
-                            #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
                             # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
                             policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
-                            #policy=f"./policies/neurosym_{args.demos}/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_drop'),
                             nulified_action_indexes=[3],
@@ -97,11 +91,9 @@ if __name__ == "__main__":
                             wrapper = ReachDropWrapper,
                             horizon=17)
     drop = Executor_Diffusion(id='Drop', 
-                    #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
                     policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
-                    #policy=f"./policies/neurosym_{args.demos}/drop.ckpt",
                     I={}, 
                     Beta=termination_indicator('drop'),
                     nulified_action_indexes=[0, 1],
@@ -110,33 +102,7 @@ if __name__ == "__main__":
                     horizon=10)
 
 
-    pickplace = Executor_Diffusion(id='PickPlace', 
-                       policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=5900-train_loss=0.010.ckpt", 
-                       #policy="/home/lorangpi/Enigma/saved_policies/epoch=3400-train_loss=0.020.ckpt", 
-                       I={}, 
-                       Beta=termination_indicator('drop'),
-                       nulified_action_indexes=[],
-                       oracle=True,
-                       wrapper = DropWrapper,
-                       horizon=100)
-    place = Executor_Diffusion(id='Place', 
-                       policy="/home/lorangpi/Enigma/lxm/hanoi_il/2025.03.26/07.44.34_train_diffusion_transformer_lowdim_lxm_obj_hanoi_pick/checkpoints/epoch=6800-train_loss=0.004.ckpt", 
-                       I={}, 
-                       Beta=termination_indicator('drop'),
-                       nulified_action_indexes=[],
-                       wrapper = DropWrapper,
-                       horizon=30)
-    pick = Executor_Diffusion(id='Pick', 
-                       policy="/home/lorangpi/Enigma/lxm/hanoi_il/2025.03.26/07.44.34_train_diffusion_transformer_lowdim_lxm_obj_hanoi_pick/checkpoints/epoch=5300-train_loss=0.007.ckpt", 
-                       I={}, 
-                       Beta=termination_indicator('pick'),
-                       nulified_action_indexes=[],
-                       wrapper = DropWrapper,
-                       horizon=30)
-
-    #Move_action = [reach_pick, grasp, reach_drop, drop]
-    Move_action = [pick, place]
-    #Move_action = [pickplace]
+    Move_action = [reach_pick, grasp, reach_drop, drop]
 
     # Create an env wrapper which transforms the outputs of reset() and step() into gym formats (and not gymnasium formats)
     class GymnasiumToGymWrapper(gym.Env):
@@ -294,31 +260,7 @@ if __name__ == "__main__":
     plan, _ = call_planner("domain_asp", "problem_dummy")
     print("Plan: ", plan)
 
-    # # Detected objects
-    # cube1_body = env.sim.model.body_name2id('cube1_main')
-    # cube2_body = env.sim.model.body_name2id('cube2_main')
-    # cube3_body = env.sim.model.body_name2id('cube3_main')
-    # peg1_body = env.sim.model.body_name2id('peg1_main')
-    # peg2_body = env.sim.model.body_name2id('peg2_main')
-    # peg3_body = env.sim.model.body_name2id('peg3_main')
-    # obj_body_mapping = {
-    #     'o1': cube1_body,
-    #     'o2': cube2_body,
-    #     'o6': cube3_body,
-    #     'o3': peg1_body,
-    #     'o4': peg2_body,
-    #     'o5': peg3_body
-    # }
-    # robosuite_obj_body_mapping = {
-    #     'cube1': cube1_body,
-    #     'cube2': cube2_body,
-    #     'cube3': cube3_body,
-    #     'peg1': peg1_body,
-    #     'peg2': peg2_body,
-    #     'peg3': peg3_body
-    # }
     obj_mapping = {'o1': 'cube1', 'o2': 'cube2', 'o6': 'cube3', 'o3': 'peg1', 'o4': 'peg2', 'o5': 'peg3'}
-    # area_pos = {'peg1': env.pegs_xy_center[0], 'peg2': env.pegs_xy_center[1], 'peg3': env.pegs_xy_center[2]}
 
     def valid_state_f(state):
         state = {k: state[k] for k in state if 'on' in k}
@@ -408,18 +350,14 @@ if __name__ == "__main__":
                 #env.set_attr('place_to_drop', obj_to_drop)
                 env.set_task((obj_to_pick, obj_to_drop))
                 print("Set attributes: ", obj_to_pick, obj_to_drop)
-                obs, reward, done, info = env.step([[np.zeros(4), np.zeros(4), np.zeros(4), np.zeros(4)]])
             print("Picking object: {}, Dropping object: {}".format(obj_to_pick, obj_to_drop))
-            #pick_loc = env.sim.data.body_xpos[robosuite_obj_body_mapping[obj_to_pick]][:3]
-            #drop_loc = env.sim.data.body_xpos[robosuite_obj_body_mapping[obj_to_drop]][:3]
             num_valid_pick_place_queries += 1
             for action_step in Move_action:
                 #if action_step.model == None:
                 action_step.load_policy()
                 print("\tExecuting action: ", action_step.id)
                 symgoal = (obj_to_pick, obj_to_drop)
-                goal = []
-                obs, success = action_step.execute(env, obs, goal, symgoal, render=args.render)
+                success = action_step.execute(env, symgoal)
                 if not success:
                     print("Execution failed.\n")
                     #break

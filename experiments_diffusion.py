@@ -95,11 +95,9 @@ if __name__ == "__main__":
                             wrapper = ReachDropWrapper,
                             horizon=17)
     drop = Executor_Diffusion(id='Drop', 
-                    #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
                     policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
-                    #policy=f"./policies/neurosym_{args.demos}/drop.ckpt",
                     I={}, 
                     Beta=termination_indicator('drop'),
                     nulified_action_indexes=[0, 1],
@@ -109,8 +107,7 @@ if __name__ == "__main__":
 
 
     pickplace = Executor_Diffusion(id='PickPlace', 
-                       policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=5900-train_loss=0.010.ckpt", 
-                       #policy="/home/lorangpi/Enigma/saved_policies/epoch=3400-train_loss=0.020.ckpt", 
+                       policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=5900-train_loss=0.010.ckpt",  
                        I={}, 
                        Beta=termination_indicator('drop'),
                        nulified_action_indexes=[],
@@ -132,8 +129,8 @@ if __name__ == "__main__":
                        wrapper = DropWrapper,
                        horizon=30)
 
-    #Move_action = [reach_pick, grasp, reach_drop, drop]
-    Move_action = [pick, place]
+    Move_action = [reach_pick, grasp, reach_drop, drop]
+    #Move_action = [pick, place]
     #Move_action = [pickplace]
 
     # Create an env wrapper which transforms the outputs of reset() and step() into gym formats (and not gymnasium formats)
