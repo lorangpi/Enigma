@@ -17,8 +17,6 @@ from diffusion_policy.workspace.base_workspace import BaseWorkspace
 from diffusion_policy.workspace.train_diffusion_transformer_lowdim_workspace import TrainDiffusionTransformerLowdimWorkspace
 set_random_seed(0, using_cuda=True)
 
-from hanoi import hanoi_actions # import get_all_pos() and move_arm()
-
 class Executor():
 	def __init__(self, id, mode, I=None, Beta=None, Circumstance=None, basic=False):
 		super().__init__()
@@ -196,6 +194,7 @@ class Executor_Diffusion(Executor):
         self.horizon = horizon
         self.device = device
         self.oracle = oracle
+        self.dummy_count = 0
 
     def load_policy(self):
         path = self.policy
@@ -218,25 +217,55 @@ class Executor_Diffusion(Executor):
         policy.reset()
         self.model = policy
 
+    # def relative_obs_mapping(self, obs, action_step="PickPlace"):
+    #     #index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z": (9,10), "place_to_drop_z": (6,7)}
+    #     index_obs = {"gripper_pos": (0,3), "aperture": (9,10), "place_to_drop_pos": (6,9), "obj_to_pick_pos": (3,6), "gripper_z": (2,3), "obj_to_pick_z": (5,6), "place_to_drop_z": (8,9)}
+    #     oracle = np.array([])
+    #     if action_step == "PickPlace":
+    #         oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]], obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+    #     elif action_step == "ReachPick":
+    #         oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+    #     elif action_step == "Grasp":
+    #         oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+    #     elif action_step == "ReachDrop":
+    #         oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+    #     elif action_step == "Drop":
+    #         oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+    #     elif action_step == "PickNut":
+    #         oracle = np.concatenate([obs[3:6], [obs[-1]]]) + [0,0,0.1182,0]
+    #         print(oracle)
+    #     elif action_step == "PlaceNut":
+    #         oracle = obs[-4:]
+    #     else:
+    #         oracle = obs
+    #     print(oracle)
+    #     return oracle
+    
+
     def relative_obs_mapping(self, obs, action_step="PickPlace"):
-        index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z": (9,10), "place_to_drop_z": (6,7)}
+        #index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z": (9,10), "place_to_drop_z": (6,7)}
+        index_obs = {"gripper_pos": (0,3), "aperture": (9,10), "place_to_drop_pos": (6,9), "obj_to_pick_pos": (3,6), "gripper_z": (2,3), "obj_to_pick_z": (5,6), "place_to_drop_z": (8,9)}
         oracle = np.array([])
-        if action_step == "PickPlace":
-            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]], obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
-        elif action_step == "ReachPick":
-            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+        if action_step == "ReachPick":
+            oracle = obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]]
         elif action_step == "Grasp":
-            oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
         elif action_step == "ReachDrop":
-            oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
+            oracle = obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]]
         elif action_step == "Drop":
-            oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+            oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+        elif action_step == "PickNut":
+            oracle = np.concatenate([obs[3:6], [obs[-1]]])
+            print(oracle)
+        elif action_step == "PlaceNut":
+            oracle = obs[-4:] + [+0.02,-0.08,0,0] if self.dummy_count % 2 == 0 else obs[-4:] + [+0,0.0,0,0]
         else:
             oracle = obs
-        return oracle
+        #print(oracle)
+        return oracle*-1
 
     def prepare_obs(self, obs, action_step="PickPlace"):
-        obs_dim = {"PickPlace": 7, "ReachPick": 3, "Grasp": 2, "ReachDrop": 3, "Drop": 2}
+        obs_dim = {"PickPlace": 7, "ReachPick": 3, "Grasp": 2, "ReachDrop": 3, "Drop": 2, "PickNut": 4, "PlaceNut": 4}
         if action_step not in obs_dim.keys():
             return obs
         returned_obs = np.zeros((obs.shape[0], len(obs[0]), obs_dim[action_step]))
@@ -248,10 +277,14 @@ class Executor_Diffusion(Executor):
                 returned_obs[j][i] = obs_policy
         #print("Returned obs shape: ", returned_obs.shape)
         #print("Original obs shape: ", obs.shape)
-        return returned_obs
+        if action_step == "PlaceNut":
+            return returned_obs *-1
+        return returned_obs *1000
 
     def prepare_act(self, act, action_step="PickPlace"):
-        return act
+        if action_step == "PlaceNut":
+            return act
+        return act/1000
     
     def control_void_act(self, action, obs):
         if len(action[0][0]) < 4:
@@ -344,8 +377,7 @@ class Executor_Diffusion(Executor):
             # If the actions in action (array) do not have 4 elements, then concatenate [0] to the action array
             action = self.control_void_act(action, obs_copy)
             # step env
-            for i in range(len(action[0])):
-                action = self.prepare_act(action, action_step=self.id)
+            action = self.prepare_act(action, action_step=self.id)
             #print("Transformed action: ", action)
             try: 
                 obs, reward, terminated, truncated, info = env.step(action)
@@ -362,9 +394,9 @@ class Executor_Diffusion(Executor):
             if step_executor > horizon:
                 print("Reached executor horizon")
                 done = True 
-        if setting == "3x3":
-            valid_state = self.valid_state_f(state)
-            success = success and valid_state
-            if not valid_state:
-                print("Invalid HANOI state")
+        # if setting == "3x3":
+        #     valid_state = self.valid_state_f(state)
+        #     success = success and valid_state
+        #     if not valid_state:
+        #         print("Invalid HANOI state")
         return obs, success
