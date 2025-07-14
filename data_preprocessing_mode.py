@@ -87,23 +87,30 @@ def prepare_data_for_dataset(trajectories, args):
     for trajectory in trajectories:
         if not trajectory:
             continue
-        print(trajectory)
-        print("trajectory length: ", len(trajectory))
-        # Print all shapes of the trajectory
-        for i, step in enumerate(trajectory):
-            print(f"Step {i} shapes: obs={np.array(step[0]).shape}, act={np.array(step[1]).shape}, next_obs={np.array(step[2]).shape}, rew={np.array(step[3]).shape}, done={step[4]}")
-        print(trajectory.shape)
-        # Stop the execution
-        sys.exit(0)
         episode = trajectory[0]
-        # Assuming each step has observations, actions, next_obs, rewards, and done flags
-        obs = [step[0] for step in episode]
-        obs.append(episode[-1][2]) # add the `next_obs` from the last trajectory as the final obs
-        obs = np.array(obs) # turn it into np.array
-        acts = np.array([step[1] for step in episode])
-        rews = np.array([step[3] for step in episode])
-        infos = np.array([{} for _ in episode])  # Assuming empty dicts for infos
-        terminal = True #episode[-1][4]  # The 'done' flag of the last step
+        # Switch slot at index 1 with 2, 3 with 4 etc...
+        episode_copy = copy.deepcopy(episode)
+        episode = [episode_copy[0]]  # Start with the first element
+        #print("Original episode length: ", len(episode_copy))
+        for i in range(len(episode_copy[1:])):
+            if i % 2 == 0:
+                episode.append(episode_copy[1 + i + 1])
+            else:
+                episode.append(episode_copy[1 + i - 1])
+        # print(episode)
+        # print("trajectory length: ", len(episode))
+        # # Print all shapes of the trajectory
+        # for i, step in enumerate(episode):
+        #     print(f"Step {i} shape:{np.array(step).shape}")
+        # print(episode.shape)
+        # # Stop the execution
+        # sys.exit(0)
+        # episode in the format of (act, obs, next_act, next_obs, etc...)
+        obs = np.array([episode[i] for i in range(0, len(episode), 2)])
+        acts = np.array([episode[i] for i in range(1, len(episode), 2)])
+        rews = np.array([0.0 for _ in range(0, len(episode)//2)])
+        infos = np.array([{} for _ in range(0, len(episode)//2)])  # Assuming empty dicts for infos
+        terminal = True
         # print("obs shape: ", np.array(obs).shape)
         # print("acts shape: ", np.array(acts).shape)
         # print("rews shape: ", np.array(rews).shape)
