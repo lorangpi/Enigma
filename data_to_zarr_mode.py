@@ -121,8 +121,12 @@ def prepare_data_for_dataset(trajectories, args):
         # print("obs shape: ", obs[0])
         #if terminal:
         #    print("an episode that reached the goal")
-        traj_obj = TrajectoryWithKeypoint(obs=obs, acts=acts, infos=infos, rews=rews, terminal=terminal, keypoint=keypoint)
-        trajectory_objects.append(traj_obj)
+        try:
+            traj_obj = TrajectoryWithKeypoint(obs=obs, acts=acts, infos=infos, rews=rews, terminal=terminal, keypoint=keypoint)
+            trajectory_objects.append(traj_obj)
+        except ValueError:
+            print("Error creating trajectory object. Skipping this trajectory.")
+            continue
         if args.num_demos > 0 and counter == args.num_demos:
             break
         counter += 1
