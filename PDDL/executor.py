@@ -247,25 +247,64 @@ class Executor_Diffusion(Executor):
         index_obs = {"gripper_pos": (0,3), "aperture": (9,10), "place_to_drop_pos": (6,9), "obj_to_pick_pos": (3,6), "gripper_z": (2,3), "obj_to_pick_z": (5,6), "place_to_drop_z": (8,9)}
         oracle = np.array([])
         if action_step == "ReachPick":
-            oracle = obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]]
+            if self.symgoal[0] == "bread":
+                grasp_point_shift = [0.03,0.0,0]
+            elif self.symgoal[0] == "squarenut":
+                grasp_point_shift = [+0.01,-0.03,0]
+            else:
+                grasp_point_shift = [+0.0,-0.03,0]
+            oracle = obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]]+ grasp_point_shift
+            oracle *= -1000
         elif action_step == "Grasp":
             oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+            oracle *= -1000
         elif action_step == "ReachDrop":
-            oracle = obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]]
+            if self.symgoal[1] == "pot":
+                grasp_point_shift = [0.2,-0.3,0.3]
+            elif self.symgoal[1] == "squarepeg":
+                grasp_point_shift = [-0.2,0.0,0]
+            else:
+                grasp_point_shift = [0.0,0.0,0]
+            oracle = obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] + grasp_point_shift
+            oracle *= -1000
         elif action_step == "Drop":
             oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+            if self.symgoal[1] == "squarepeg" or self.symgoal[1] == "roundpeg":
+                grasp_point_shift = [-0.17,0.0]
+            else:
+                grasp_point_shift = [0.0,0.0]
+            oracle = oracle + grasp_point_shift
+            oracle *= -1000
         elif action_step == "PickNut":
             oracle = np.concatenate([obs[3:6], [obs[-1]]])
-            print(oracle)
         elif action_step == "PlaceNut":
-            oracle = obs[-4:] + [+0.02,-0.08,0,0] if self.dummy_count % 2 == 0 else obs[-4:] + [+0,0.0,0,0]
+            if self.symgoal[0] == "squarenut":
+                grasp_point_shift = [0.015,-0.002,0,0]
+            else:
+                grasp_point_shift = [0.015,-0.1,0,0]
+            oracle = obs[-4:] + grasp_point_shift
+        elif action_step == "PickKitchen":
+            oracle = np.concatenate([obs[3:6], [obs[-1]]])
+        elif action_step == "PlaceKitchen":
+            #oracle = obs[-4:] + [+0.04,0,0,0]
+            if self.symgoal[0] == "bread":
+                grasp_point_shift = [0.055,-0.04,0]
+            elif self.symgoal[1] == "serving":
+                grasp_point_shift = [0.1,-0.1,0]
+            else:
+                grasp_point_shift = [0.2,0.0,0]
+            oracle = obs[-4:-1] + grasp_point_shift
+        elif "TurnOn" in action_step:
+            oracle = obs[:3] + [-0.1,0,0]
+        elif "TurnOff" in action_step:
+            oracle = obs[:3] + [0.1,0.035,0]
         else:
             oracle = obs
         #print(oracle)
-        return oracle*-1
+        return oracle
 
     def prepare_obs(self, obs, action_step="PickPlace"):
-        obs_dim = {"PickPlace": 7, "ReachPick": 3, "Grasp": 2, "ReachDrop": 3, "Drop": 2, "PickNut": 4, "PlaceNut": 4}
+        obs_dim = {"PickPlace": 7, "ReachPick": 3, "Grasp": 2, "ReachDrop": 3, "Drop": 2, "PickNut": 4, "PlaceNut": 4, "PickKitchen": 4, "PlaceKitchen": 3, "TurnOn": 3, "TurnOff": 3}
         if action_step not in obs_dim.keys():
             return obs
         returned_obs = np.zeros((obs.shape[0], len(obs[0]), obs_dim[action_step]))
@@ -277,21 +316,26 @@ class Executor_Diffusion(Executor):
                 returned_obs[j][i] = obs_policy
         #print("Returned obs shape: ", returned_obs.shape)
         #print("Original obs shape: ", obs.shape)
-        if action_step == "PlaceNut":
-            return returned_obs *-1
-        return returned_obs *1000
+        return returned_obs
 
     def prepare_act(self, act, action_step="PickPlace"):
-        if action_step == "PlaceNut":
-            return act
-        return act/1000
-    
+        if action_step in ["ReachPick", "Grasp", "ReachDrop", "Drop"]:
+            return act/1000
+        return act
+
     def control_void_act(self, action, obs):
         if len(action[0][0]) < 4:
             # Concatenate zeros_colum to action at self.nulified_action_indexes
             for index in self.nulified_action_indexes:
-                error = obs[0][-1][index] - self.control_static[index]
-                action = np.insert(action, index, -error, axis=2)
+                if index != 3: # otherwise let the gripper aperture as it is
+                    error = obs[0][-1][index] - self.control_static[index]
+                    action = np.insert(action, index, -error, axis=2)
+                else:
+                    #print("Gripper aperture: ", self.control_static[index])
+                    to_insert = 0 if self.control_static[index] >= 0.095 else -1000
+                    #print("Gripper aperture to insert: ", to_insert)
+                    #print()
+                    action = np.insert(action, index, to_insert, axis=2)
         return action
 
     def obs_base_from_info(self, info):
@@ -322,9 +366,10 @@ class Executor_Diffusion(Executor):
         This method is responsible for executing the policy on the given state. It takes a state as a parameter and returns the action 
         produced by the policy on that state. 
         '''
-        self.control_static = {0: obs[0][-1][0], 1: obs[0][-1][1], 2: obs[0][-1][2], 3: obs[0][-1][3]}
+        self.control_static = {0: obs[0][-1][0], 1: obs[0][-1][1], 2: obs[0][-1][2], 3: obs[0][-1][-1]}
         horizon = self.horizon if self.horizon is not None else 500
         print("\tTask goal: ", symgoal)
+        self.symgoal = symgoal
 
         obs_base = False
 

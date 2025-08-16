@@ -188,7 +188,7 @@ if __name__ == "__main__":
     parser.add_argument('--data_dir4', type=str, default="", help='Data Directory of second set of demonstrations')
     parser.add_argument('--data_dir5', type=str, default="", help='Data Directory of second set of demonstrations')
     parser.add_argument('--data_dir6', type=str, default="", help='Data Directory of second set of demonstrations')
-    parser.add_argument('--filter_actions', type=bool, default=False, help='Filter actions')
+    parser.add_argument('--filter_actions', action='store_true', help='Filter actions')
     parser.add_argument('--num_demos', type=int, default=0, help='Number of demonstrations')
     parser.add_argument('--save_dir', type=str, default='', help='Save Directory')
     parser.add_argument('--lxm', action='store_true', help='Use lxm project format of data')

@@ -75,13 +75,13 @@ class RecordDemos():
         """
         # Access the value of the specified column and convert to float
         if self.args.name != None and 'load' in self.args.name:
-            c_lift_pos_ref = float(row['c_lift_pos_ref'])
-            c_drive_vel_ref = float(row['c_drive_vel_ref'])
+            c_lift_pos_ref = float(row['c_lift'])#float(row['c_lift_pos_ref'])
+            c_drive_vel_ref = float(row['c_drive'])#float(row['c_drive_vel_ref'])
             action = np.array([c_drive_vel_ref, c_lift_pos_ref], dtype=np.float64)
         else:
-            c_shift_pos_ref = float(row['c_shift_pos_ref'])
-            c_drive_vel_ref = float(row['c_drive_vel_ref'])
-            c_steer_vel_ref = float(row['c_steer_vel_ref'])
+            c_shift_pos_ref = float(row['c_shift'])#float(row['c_shift_pos_ref'])
+            c_drive_vel_ref = float(row['c_drive'])#float(row['c_drive_vel_ref'])
+            c_steer_vel_ref = float(row['c_steer'])#float(row['c_steer_vel_ref'])
 
             action = np.array([c_drive_vel_ref, c_steer_vel_ref, c_shift_pos_ref], dtype=np.float64)
 
@@ -220,11 +220,11 @@ if __name__ == "__main__":
     while num_recorder_eps < args.episodes and episode < args.episodes * 2:
         print("Episode: {}".format(episode+1))
         keys = list(sample.data_buffer.keys())
-        try:
-            done = sample.read_csv_row(bag_name="bag_{}data".format(episode))
-        except Exception as e:
-            print("Error reading csv file: {}".format(e))
-            done = True
+        #try:
+        done = sample.read_csv_row(bag_name="bag_{}data".format(episode))
+        #except Exception as e:
+        #    print("Error reading csv file: {}".format(e))
+            #done = True
         if done:
             sample.next_trajectory()
         else:

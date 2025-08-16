@@ -1,0 +1,21 @@
+(define (problem kitchen0)
+(:domain kitchen)
+(:objects o1 o2 o3 o4 o5 - obj); bread, pot, stove, servingarea, table
+(:init 
+(p1 o1 o5)
+(p1 o2 o5)
+(p3 o1 o2)
+(p3 o1 o3)
+(p3 o1 o4)
+(p3 o1 o5)
+(p3 o2 o3)
+(p3 o2 o4)
+(p3 o2 o5)
+)
+(:goal (and 
+(p1 o1 o2)
+(p1 o2 o4)
+(p4)
+(not(p2))
+))
+)

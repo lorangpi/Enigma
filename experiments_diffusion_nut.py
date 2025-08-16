@@ -52,7 +52,12 @@ if __name__ == "__main__":
             def Beta(state, symgoal):
                 condition = state[f"over(gripper,{symgoal[1]})"]
                 return condition
+        else:
+            def Beta(state, symgoal):
+                condition = False
+                return condition
         return Beta
+    
 
     # Create an env wrapper which transforms the outputs of reset() and step() into gym formats (and not gymnasium formats)
     class GymnasiumToGymWrapper(gym.Env):
@@ -131,7 +136,7 @@ if __name__ == "__main__":
 
     # # Load executors
     place = Executor_Diffusion(id='PlaceNut', 
-                       policy=f"./kitchen_policies/{args.demos}_demos/nut_place.ckpt", 
+                       policy=f"./nut_policies/{args.demos}_demos/nut_place.ckpt", 
                        I={}, 
                        Beta=termination_indicator('reach_drop'),
                        nulified_action_indexes=[],
@@ -142,7 +147,7 @@ if __name__ == "__main__":
                             #policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
                             # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
-                            policy=f"./kitchen_policies/{args.demos}_demos/reach_pick.ckpt",
+                            policy=f"./nut_policies/{args.demos}_demos/reach_pick.ckpt",
                             #policy=f"./policies/neurosym_{args.demos}/reach_pick.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_pick'),
@@ -154,7 +159,7 @@ if __name__ == "__main__":
                     #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
-                    policy=f"./kitchen_policies/{args.demos}_demos/grasp.ckpt",
+                    policy=f"./nut_policies/{args.demos}_demos/grasp.ckpt",
                     #policy=f"./policies/neurosym_{args.demos}/grasp.ckpt",
                     I={}, 
                     Beta=termination_indicator('pick'),
@@ -165,13 +170,23 @@ if __name__ == "__main__":
     drop = Executor_Diffusion(id='Drop', 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
-                    policy=f"./kitchen_policies/{args.demos}_demos/drop.ckpt",
+                    policy=f"./nut_policies/{args.demos}_demos/drop.ckpt",
                     I={}, 
-                    Beta=termination_indicator('drop'),
+                    Beta=termination_indicator('drop1'),
                     nulified_action_indexes=[0, 1],
                     oracle=True,
                     wrapper = twoWrapper,
-                    horizon=10)
+                    horizon=4)
+
+    reach_drop = Executor_Diffusion(id='ReachDrop',
+                            policy=f"./nut_policies/{args.demos}_demos/reach_drop.ckpt",
+                            I={},
+                            Beta=termination_indicator('reach_drop'),
+                            nulified_action_indexes=[3],
+                            oracle=True,
+                            wrapper = threeWrapper,
+                            horizon=10)
+
 
     Move_action = [reach_pick, grasp, place, drop]
 
@@ -189,7 +204,7 @@ if __name__ == "__main__":
             has_offscreen_renderer=True,
             horizon=20000,
             use_camera_obs=False,
-            render_camera="frontview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+            render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
         )
 
         # Wrap the environment
@@ -350,6 +365,7 @@ if __name__ == "__main__":
         # Execute the first operator in the plan
         reset_gripper(env)
         for operator in plan:
+            #operator = "MOVE O5 O2 O4"
             print("\nExecuting operator: ", operator)
             # Concatenate the observations with the operator effects
             obj_to_pick = obj_mapping[operator.split(' ')[2].lower()]
@@ -380,6 +396,7 @@ if __name__ == "__main__":
                 if operator == plan[-1]:
                     continue
             else:
+                continue
                 # Print the number of operators that were successfully executed out of the total number of operators in the plan
                 print("--- Object not picked and placed.")
                 print(f"Successfull operations: {pick_place_success}, Out of: {len(plan)}, Percentage advancement: {pick_place_success/len(plan)}")
