@@ -62,7 +62,7 @@ if __name__ == "__main__":
                             #policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
                             # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
-                            policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
+                            policy="/home/lorangpi/Enigma_save/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
                             #policy=f"./policies/neurosym_{args.demos}/reach_pick.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_pick'),
@@ -74,7 +74,7 @@ if __name__ == "__main__":
                     #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
-                    policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.37_train_diffusion_transformer_lowdim_5_grasp_lowdim/checkpoints/epoch=7300-train_loss=0.021.ckpt",
+                    policy="/home/lorangpi/Enigma_save/results_baselines/outputs/2025.01.20/18.02.37_train_diffusion_transformer_lowdim_5_grasp_lowdim/checkpoints/epoch=7300-train_loss=0.021.ckpt",
                     #policy=f"./policies/neurosym_{args.demos}/grasp.ckpt",
                     I={}, 
                     Beta=termination_indicator('pick'),
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                             #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
                             # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
-                            policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
+                            policy="/home/lorangpi/Enigma_save/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
                             #policy=f"./policies/neurosym_{args.demos}/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_drop'),
@@ -98,7 +98,7 @@ if __name__ == "__main__":
                     #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
-                    policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
+                    policy="/home/lorangpi/Enigma_save/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
                     #policy=f"./policies/neurosym_{args.demos}/drop.ckpt",
                     I={}, 
                     Beta=termination_indicator('drop'),
@@ -182,17 +182,32 @@ if __name__ == "__main__":
 
     device = "cpu"
     def env_fn():
+        # env = suite.make(
+        #     "Hanoi",
+        #     robots="Kinova3",
+        #     controller_configs=controller_config,
+        #     has_renderer=True,
+        #     has_offscreen_renderer=True,
+        #     horizon=20000 if args.hanoi else 2000,
+        #     use_camera_obs=False,
+        #     render_camera="frontview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
+        #     random_reset=False,
+        # )
+
         env = suite.make(
             "Hanoi",
             robots="Kinova3",
             controller_configs=controller_config,
-            has_renderer=True,
+            has_renderer=args.render,
             has_offscreen_renderer=True,
-            horizon=20000 if args.hanoi else 2000,
-            use_camera_obs=False,
-            render_camera="frontview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
-            random_reset=False,
+            horizon=100000000,
+            use_camera_obs=True,
+            use_object_obs=False,
+            camera_names=["agentview", "robot0_eye_in_hand"],
+            camera_heights=256,
+            camera_widths=256,
         )
+
 
         # Wrap the environment
         env = GymWrapper(env)
@@ -258,7 +273,7 @@ if __name__ == "__main__":
         obs = env.reset()
 
     obs, reward, done, info = env.step([[np.zeros(4), np.zeros(4), np.zeros(4), np.zeros(4)]])
-    print("Info: ", info)
+    #print("Info: ", info)
     state = info[0]['state'][-1]
     # Detect the state of the environment
     # detector = Robosuite_Hanoi_Detector(env)
@@ -365,7 +380,7 @@ if __name__ == "__main__":
             delta = reset_gripper_pos - current_pos
             #print(f"Delta: {delta}, Current pos: {current_pos}, Reset pos: {reset_gripper_pos}")
 
-    for i in range(100):
+    for i in range(10):
         print("Episode: ", i)
         success = False
         valid_state = False
@@ -390,6 +405,7 @@ if __name__ == "__main__":
             plan, _ = call_planner("domain_asp", "problem_dummy")
         print("Plan: ", plan)
 
+        tracked_objects = {}
         pick_place_success = 0
         # Execute the first operator in the plan
         reset_gripper(env)
@@ -418,6 +434,7 @@ if __name__ == "__main__":
                 symgoal = (obj_to_pick, obj_to_drop)
                 goal = []
                 obs, success = action_step.execute(env, obs, goal, symgoal, render=args.render)
+                #action_step.tracked_positions[symgoal[0]] = np.asarray([0,0,0])
                 if not success:
                     print("Execution failed.\n")
                     #break

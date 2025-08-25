@@ -4,18 +4,30 @@ import robosuite as suite
 from robosuite.wrappers import GymWrapper
 from datetime import datetime
 import gymnasium as gym
+#import gym
 import numpy as np
 from robosuite.wrappers.behavior_cloning.detector import Robosuite_Hanoi_Detector
 from robosuite.wrappers.behavior_cloning.hanoi_pick_place import PickPlaceWrapper
 from graph_learner import GraphLearner
+from ultralytics import YOLO
+from roboflow import Roboflow
+import cv2
+import joblib
+import pandas as pd
+cv2.destroyAllWindows = lambda: None
+yolo_model = YOLO("PDDL/yolo.pt")
 
 def to_datestring(unixtime: int, format='%Y-%m-%d_%H:%M:%S'):
 	return datetime.utcfromtimestamp(unixtime).strftime(format)
 
-reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.20828137]) * 1000
+#reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.20828137]) * 1000
+reset_gripper_pos = np.array([-0.14193391, -0.03391656,  1.05828137]) * 1000
+
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 
 class RecordDemos(gym.Wrapper):
-    def __init__(self, env, args, randomize=True):
+    def __init__(self, env, args, randomize=False):
         # Run super method
         super().__init__(env=env)
         self.env = env
@@ -36,7 +48,12 @@ class RecordDemos(gym.Wrapper):
         self.place_to_drop = 'cube2_main'
         self.count_step = 0
         self.randomize = randomize
-
+        self.map_id_semantic = {
+                "blue cube": "cube1",
+                "red cube": "cube2",
+                "green cube": "cube3",
+                "yellow cube": "cube4",
+        }
         # Environment parameters
         self.goal_mapping = {'cube1': 0, 'cube2': 1, 'cube3': 2, 'peg1': 3, 'peg2': 4, 'peg3': 5}
         self.obj_mapping = {'cube1': self.cube1_body, 'cube2': self.cube2_body, 'cube3': self.cube3_body, 'peg1': self.peg1_body, 'peg2': self.peg2_body, 'peg3': self.peg3_body}
@@ -58,6 +75,8 @@ class RecordDemos(gym.Wrapper):
         self.counter_peg = 0
         self.counter_cube = 0
         self.counter_demos = min(self.counter_peg, self.counter_cube)
+        self.df_metrics = pd.DataFrame(columns=['wx', 'wy', 'wz', 'pred_x', 'pred_y', 'pred_z', 'error'])
+        self.bboxes_centers = []
 
     def cap(self, eps, max_val=0.07, min_val=0.01):
         # If the displacement is greater than the max value, cap it
@@ -115,7 +134,7 @@ class RecordDemos(gym.Wrapper):
                 self.env.render() if self.render_init else None
 
             # Moving randomly 0 to 200 steps
-            for k in range(np.random.randint(1, 100)):
+            for k in range(np.random.randint(1, 10)):
                 generate_random_3d_action = np.random.uniform(-0.5, 0.5, 3)
                 action = np.concatenate([generate_random_3d_action, [0]])
                 action = action * 1000
@@ -146,17 +165,18 @@ class RecordDemos(gym.Wrapper):
             object_pos = np.asarray(self.env.sim.data.body_xpos[self.obj_mapping[self.obj_to_pick]])
             dist_xy_plan = object_pos[:2] - gripper_pos[:2]
             dist_xy_plan = self.cap(dist_xy_plan)
-            action = 5*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 5*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.5*np.linalg.norm(dist_xy_plan), 3), [0]])
+            #print("Distance to object: ", dist_xy_plan, " Norm: ", np.linalg.norm(dist_xy_plan))
+            action = 7*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 7*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.3*np.linalg.norm(dist_xy_plan), 3), [0]])
             action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
+            next_obs, _, _, _, info  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="reach_pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="reach_pick", info=info)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
-            if self.reset_step_count > 500:
+            if self.reset_step_count > 200:
                 return False, obs
         self.reset_step_count = 0
         self.env.time_step = 0
@@ -165,15 +185,15 @@ class RecordDemos(gym.Wrapper):
         while not state['open_gripper(gripper)']:
             action = np.asarray([0,0,0,1])
             action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
+            next_obs, _, _, _, info  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick", info=info)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
-            if self.reset_step_count > 100:
+            if self.reset_step_count > 50:
                 return False, obs
         self.reset_step_count = 0
         self.env.time_step = 0
@@ -186,15 +206,15 @@ class RecordDemos(gym.Wrapper):
             dist_z_axis = self.cap(dist_z_axis)
             action = 5*np.concatenate([[0, 0], dist_z_axis, [0]]) if not(self.randomize) else 5*np.concatenate([[0, 0], dist_z_axis, [0]]) + np.concatenate([[0, 0], np.random.normal(0, 0.5*np.linalg.norm(dist_z_axis), 1), [0]])
             action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
+            next_obs, _, _, _, info  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick", info=info)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
-            if self.reset_step_count > 400:
+            if self.reset_step_count > 200:
                 return False, obs
         self.reset_step_count = 0
         self.env.time_step = 0
@@ -203,10 +223,10 @@ class RecordDemos(gym.Wrapper):
         while not state['grasped({})'.format(self.obj_to_pick)]:
             action = np.asarray([0,0,0,-1])
             action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
+            next_obs, _, _, _, info  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick")
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step="pick", info=info)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -247,15 +267,15 @@ class RecordDemos(gym.Wrapper):
             action = np.asarray([0,0,0.4,0]) if not(self.randomize) else [0,0,0.5,0] + np.concatenate([np.random.normal(0, 0.1, 3), [0]])
             action = 5*self.cap(action)
             action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
+            next_obs, _, _, _, info  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step1)
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step1, info=info)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
-            if self.reset_step_count > 300:
+            if self.reset_step_count > 200:
                 return False, obs
         self.reset_step_count = 0
         self.env.time_step = 0
@@ -272,17 +292,17 @@ class RecordDemos(gym.Wrapper):
             if self.args.expert:
                 action = 7*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 7*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.1*np.linalg.norm(dist_xy_plan), 3), [0]])
             else:            
-                action = 5*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 5*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.5*np.linalg.norm(dist_xy_plan), 3), [0]])
+                action = 7*np.concatenate([dist_xy_plan, [0, 0]]) if not(self.randomize) else 7*np.concatenate([dist_xy_plan, [0, 0]]) + np.concatenate([np.random.normal(0, 0.3*np.linalg.norm(dist_xy_plan), 3), [0]])
             action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
+            next_obs, _, _, _, info  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step1)
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step1, info=info)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
-            if self.reset_step_count > 500:
+            if self.reset_step_count > 200:
                 return False, obs
         self.reset_step_count = 0
         self.env.time_step = 0
@@ -296,15 +316,15 @@ class RecordDemos(gym.Wrapper):
             dist_z_axis = self.cap(dist_z_axis)
             action = 5*np.concatenate([[0, 0], dist_z_axis, [0]]) if not(self.randomize) else 5*np.concatenate([[0, 0], dist_z_axis, [0]]) + np.concatenate([[0, 0], np.random.normal(0, 0.5*np.linalg.norm(dist_z_axis), 1), [0]])
             action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
+            next_obs, _, _, _, info  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step2)
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step2, info=info)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
             self.reset_step_count += 1
-            if self.reset_step_count > 200:
+            if self.reset_step_count > 100:
                 return False, obs
         self.reset_step_count = 0
         self.env.time_step = 0
@@ -313,10 +333,10 @@ class RecordDemos(gym.Wrapper):
         while not(state['open_gripper(gripper)']):#state['grasped({})'.format(self.obj_to_pick)]:
             action = np.asarray([0,0,0,1])
             action = action * 1000
-            next_obs, _, _, _, _  = self.env.step(action)
+            next_obs, _, _, _, info  = self.env.step(action)
             self.env.render() if self.render_init else None
             next_state = self.detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step2)
+            self.state_memory = self.record_demos(obs, action, next_obs, self.state_memory, next_state, action_step=action_step2, info=info)
             if self.state_memory is None:
                 return False, obs
             obs, state = next_obs, next_state
@@ -362,6 +382,14 @@ class RecordDemos(gym.Wrapper):
         self.sim.forward()
         return obs
 
+    def save_csv_yolo(self, output_path="yolo_data.csv"):
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        if not self.bboxes_centers:
+            print("No bounding boxes data to save.")
+            return
+        pd.DataFrame(self.bboxes_centers).to_csv(output_path, index=False)
+        print(f"YOLO data saved at {output_path}")
+
     def next_episode(self):
         # Data buffer saves a tuple of (trajectory[obs, action, next_obs, done, reward], symbolic trajectory[state, "MOVE", next_state], task)
         for step in self.action_steps:
@@ -376,6 +404,8 @@ class RecordDemos(gym.Wrapper):
                     self.counter_cube += 1
         self.counter_demos = min(self.counter_peg, self.counter_cube)
         self.save_buffer(self.data_buffer, self.args.traces)
+        episode_nmb = len(list(self.data_buffer.keys()))
+        self.save_csv_yolo(output_path=os.path.join(self.args.yolo_data, "yolo_data_{}.csv".format(episode_nmb)))
         obs = self.reset()
         return obs
 
@@ -454,13 +484,193 @@ class RecordDemos(gym.Wrapper):
         elif action_step == "place":
             keypoint = obs[index_obs[drop_key][0]:index_obs[drop_key][1]]
         return keypoint
-            
+
+    def pixel_to_world(self, px, py):
+        # Load linear Regression models for cube positions
+        models = joblib.load("calibration_models.pkl")
+        #models = joblib.load("filtered_calibration_models0.pkl")
+        reg_x, reg_y, reg_z = models["reg_x"], models["reg_y"], models["reg_z"]
+
+        vec = np.array([px, py, 1.0])
+        x = reg_x.predict([vec])[0]  # Subtract a small offset to the x coordinate
+        y = reg_y.predict([vec])[0] # Subtract a small offset to the y coordinate
+        z = reg_z.predict([vec])[0]  # Add a small offset to the z coordinate
+        return x*1000., y*1000., z *1000.
+
+    def pixel_to_world_dual(self, px1, py1, w1, h1, conf1, px2, py2, w2, h2, conf2, ee_x, ee_y, ee_z):
+        # Load linear Regression models for cube positions
+        models_dual = joblib.load("dual_cam_calibration_models.pkl")
+        reg_x_dual, reg_y_dual, reg_z_dual = models_dual["reg_x"], models_dual["reg_y"], models_dual["reg_z"]
+
+        features = np.array([[px1, py1, w1, h1, conf1, px2, py2, w2, h2, conf2, ee_x, ee_y, ee_z]])
+        x = reg_x_dual.predict(features)[0]
+        y = reg_y_dual.predict(features)[0]
+        z = reg_z_dual.predict(features)[0]
+        return x*1000., y*1000., z*1000.
+
+    def yolo_estimate(self, image1, image2=None, ee_pos=None, cubes_obs=None):
+        # Resize the image to fit YOLO input requirements
+
+        cubes_predicted_xyz = {}
+        try:
+            image1 = cv2.resize(image1, (256, 256))
+        except Exception as e:
+            print("Error resizing image: ", e, image1.shape, image1.dtype)
+        if image2 is not None:
+            try:
+                image2 = cv2.resize(image2, (256, 256))
+            except Exception as e:
+                print("Error resizing image2: ", e, image2.shape, image2.dtype)
+            # Concatenate the two images side by side
+        # Mirror the image (top to bottom)
+        image1 = cv2.flip(image1, 0)
+        # Convert the image to BGR format if it is not already
+        image1 = cv2.cvtColor(image1, cv2.COLOR_RGB2BGR)
+        # Run YOLO model on the image
+        predictions1 = yolo_model.predict(image1, verbose=False)[0]
+        if image2 is not None:
+            image2 = cv2.flip(image2, 0)
+            image2 = cv2.cvtColor(image2, cv2.COLOR_RGB2BGR)
+            predictions2 = yolo_model.predict(image2, verbose=False)[0]
+
+        # Draw bounding boxes from Roboflow JSON
+        for pred in predictions1.boxes:#.get("predictions", []):
+            # x, y = pred["x"], pred["y"]
+            # w, h = pred["width"], pred["height"]
+            # conf, cls = pred["confidence"], pred["class"]
+
+            cls_id = int(pred.cls)
+            cls = yolo_model.names[cls_id]
+            x, y, w, h = pred.xywhn.tolist()[0]
+            conf = pred.conf
+            # Convert normalized coordinates to pixel coordinates
+            x = int(x * image1.shape[1])
+            y = int(y * image1.shape[0])
+            w = int(w * image1.shape[1])
+            h = int(h * image1.shape[0])
+
+            ground_truth_xyz = cubes_obs[self.map_id_semantic[cls]]
+            if image2 is not None:
+                found_match = False
+                for pred in predictions2.boxes:
+                    cls_id2 = int(pred.cls)
+                    if cls_id2 == cls_id:
+                        found_match = True
+                        x_cam2, y_cam2, w_cam2, h_cam2 = pred.xywhn.tolist()[0]
+                        conf_cam2 = pred.conf
+                        # Convert normalized coordinates to pixel coordinates
+                        x_cam2 = int(x_cam2 * image2.shape[1])
+                        y_cam2 = int(y_cam2 * image2.shape[0])
+                        w_cam2 = int(w_cam2 * image2.shape[1])
+                        h_cam2 = int(h_cam2 * image2.shape[0])
+                        self.bboxes_centers.append({
+                            "px_cam1": x,
+                            "py_cam1": y,
+                            "w_cam1": w,
+                            "h_cam1": h,
+                            "conf_cam1": float(conf),
+                            "cls": cls,
+                            "px_cam2": x_cam2,
+                            "py_cam2": y_cam2,
+                            "w_cam2": w_cam2,
+                            "h_cam2": h_cam2,
+                            "conf_cam2": float(conf_cam2),
+                            "ee_x": ee_pos[0] if ee_pos is not None else None,
+                            "ee_y": ee_pos[1] if ee_pos is not None else None,
+                            "ee_z": ee_pos[2] if ee_pos is not None else None,
+                            "world_x": ground_truth_xyz[0],
+                            "world_y": ground_truth_xyz[1],
+                            "world_z": ground_truth_xyz[2],
+                        })
+                if not found_match:
+                    x_cam2, y_cam2, w_cam2, h_cam2, conf_cam2 = 0, 0, 0, 0, 0
+                    self.bboxes_centers.append({
+                                "px_cam1": x,
+                                "py_cam1": y,
+                                "w_cam1": w,
+                                "h_cam1": h,
+                                "conf_cam1": float(conf),
+                                "cls": cls,
+                                "px_cam2": 0,
+                                "py_cam2": 0,
+                                "w_cam2": 0,
+                                "h_cam2": 0,
+                                "conf_cam2": 0,
+                                "ee_x": ee_pos[0] if ee_pos is not None else None,
+                                "ee_y": ee_pos[1] if ee_pos is not None else None,
+                                "ee_z": ee_pos[2] if ee_pos is not None else None,
+                                "world_x": ground_truth_xyz[0],
+                                "world_y": ground_truth_xyz[1],
+                                "world_z": ground_truth_xyz[2],
+                            })
+                # Use dual camera regression to estimate the position
+                predicted_xyz = self.pixel_to_world_dual(x, y, w, h, conf, x_cam2, y_cam2, w_cam2, h_cam2, conf_cam2, ee_pos[0], ee_pos[1], ee_pos[2])
+            else:
+                # Use single camera regression to estimate the position
+                predicted_xyz = self.pixel_to_world(x, y)
+            cubes_predicted_xyz.update({self.map_id_semantic[cls]: predicted_xyz})
+            # Print the predicted and ground truth positions
+            #print(f"Predicted: {predicted_xyz}, Ground Truth: {ground_truth_xyz}", "Error: ", np.linalg.norm(np.array(predicted_xyz) - np.array(ground_truth_xyz)))
+
+        return cubes_predicted_xyz
+
     def record_demos(self, obs, action, next_obs, state_memory, new_state, sym_action="MOVE", action_step="trace", reward=-1.0, done=False, info=None):
         # keypoint = last 3 values of obs
         if not(self.args.split_action):
             action_step = 'trace'
         keypoint = self.keypoint_mapping(obs, action_step)
         #print("Key point: ", keypoint, " Obs: ", obs)
+        if self.args.use_yolo:
+            image_agentview = info["agentview"]
+            roboteye_images = info["robot0_eye_in_hand"]
+            ee_pos = info["ee_pos"]
+            cubes_obs = info["cubes_obs"]
+            cubes_predicted_xyz = self.yolo_estimate(image_agentview, roboteye_images, ee_pos, cubes_obs)
+            if self.obj_to_pick in cubes_predicted_xyz.keys():
+                predicted_pos_to_pick = cubes_predicted_xyz[self.obj_to_pick]
+                world_pos_to_pick = copy.deepcopy(obs[7:10])
+                obs[7:10] = np.array(predicted_pos_to_pick)
+                self.df_metrics = pd.concat(
+                    [
+                        self.df_metrics,
+                        pd.DataFrame([{
+                            'wx': world_pos_to_pick[0],
+                            'wy': world_pos_to_pick[1],
+                            'wz': world_pos_to_pick[2],
+                            'pred_x': predicted_pos_to_pick[0],
+                            'pred_y': predicted_pos_to_pick[1],
+                            'pred_z': predicted_pos_to_pick[2],
+                            'error': np.linalg.norm(np.array(predicted_pos_to_pick) - np.array(world_pos_to_pick))
+                        }])
+                    ],
+                    ignore_index=True
+                )
+                self.df_metrics["diff_x"] = self.df_metrics["wx"] - self.df_metrics["pred_x"]
+                self.df_metrics["diff_y"] = self.df_metrics["wy"] - self.df_metrics["pred_y"]
+                self.df_metrics["diff_z"] = self.df_metrics["wz"] - self.df_metrics["pred_z"]
+            if self.place_to_drop in cubes_predicted_xyz.keys():
+                predicted_pos_to_drop = cubes_predicted_xyz[self.place_to_drop]
+                world_pos_to_drop = copy.deepcopy(obs[4:7])
+                obs[4:7] = np.array(predicted_pos_to_drop)
+                # update self.df_metrics
+                self.df_metrics = pd.concat(
+                    [
+                        self.df_metrics,
+                        pd.DataFrame([{
+                            'wx': world_pos_to_drop[0],
+                            'wy': world_pos_to_drop[1],
+                            'wz': world_pos_to_drop[2],
+                            'px': predicted_pos_to_drop[0],
+                            'py': predicted_pos_to_drop[1],
+                            'pz': predicted_pos_to_drop[2],
+                            'error': np.linalg.norm(np.array(predicted_pos_to_drop) - np.array(world_pos_to_drop))
+                        }])
+                    ],
+                    ignore_index=True
+                )
+                self.df_metrics["diff_x"] = self.df_metrics["wx"] - self.df_metrics["pred_x"]
+                self.df_metrics["diff_y"] = self.df_metrics["wy"] - self.df_metrics["pred_y"]
+                self.df_metrics["diff_z"] = self.df_metrics["wz"] - self.df_metrics["pred_z"]
         obs = self.relative_obs_mapping(obs, action_step)
         #print("Action step: ", action_step, "Obs shape: ", obs.shape, "Key point shape: ", keypoint.shape)
         if self.args.goal_env:
@@ -553,7 +763,7 @@ if __name__ == "__main__":
     parser.add_argument('--experiment', type=str, default='demo', choices=['demo'], 
                         help='Name of the experiment. Used to name the log and model directories. Augmented means that the observations are augmented with the detector observation.')
     parser.add_argument('--data_folder', type=str, default='./data/', help='Path to the data folder')
-    parser.add_argument('--episodes', type=int, default=int(300), help='Number of episodes to train for')
+    parser.add_argument('--episodes', type=int, default=int(200), help='Number of episodes to train for')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--name', type=str, default=None, help='Name of the experiment')
     parser.add_argument('--render', action='store_true', help='Render the initial state')
@@ -562,6 +772,7 @@ if __name__ == "__main__":
     parser.add_argument('--keypoint', action='store_true', help='Store the keypoint')
     parser.add_argument('--unique', action='store_true', help='Unique transitions, 27 possible transitions')
     parser.add_argument('--expert', action='store_true', help='Expert mode')
+    parser.add_argument('--use_yolo', action='store_true', help='Use YOLO to detect object positions')
 
     args = parser.parse_args()
     # Set the random seed
@@ -580,6 +791,7 @@ if __name__ == "__main__":
     args.graphs = args.experiment_dir + '/graphs/'
     args.pddl = args.experiment_dir + '/pddl/'
     args.traces = args.experiment_dir + '/traces/'
+    args.yolo_data = args.experiment_dir + '/yolo_data/'
     os.makedirs(args.experiment_dir, exist_ok=True)
     os.makedirs(args.graphs, exist_ok=True)
     os.makedirs(args.pddl, exist_ok=True)
@@ -589,15 +801,17 @@ if __name__ == "__main__":
     controller_config = suite.load_controller_config(default_controller='OSC_POSITION')
     # Create the environment
     env = suite.make(
-        "Hanoi7x5",
+        "Hanoi",
         robots="Kinova3",
         controller_configs=controller_config,
         has_renderer=args.render,
         has_offscreen_renderer=True,
         horizon=100000000,
-        use_camera_obs=False,
+        use_camera_obs=True,
+        use_object_obs=True,
+        camera_names=["agentview", "robot0_eye_in_hand"],
         render_camera="robot0_eye_in_hand",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
-        random_reset=True,
+        random_block_placement=True,
     )
 
     # Wrap the environment
@@ -625,11 +839,11 @@ if __name__ == "__main__":
             except:
                 obs = env.reset()
         done = False
-        if episode % 10 == 0 and episode > 0:
-            try:
-                obs, _ = env.reset()
-            except:
-                obs = env.reset()
+        # if episode % 10 == 0 and episode > 0:
+        #     try:
+        #         obs, _ = env.reset()
+        #     except:
+        #         obs = env.reset()
         if episode % 27 == 0:
             print("\n Graph mapping: ", env.Graph.state_mapping)
         episode += 1
@@ -637,4 +851,18 @@ if __name__ == "__main__":
         if len(keys) > 0:
             num_recorder_eps = len(env.data_buffer[keys[0]])
             print("Number of recorded episodes: {}".format(num_recorder_eps))
+            if args.use_yolo:
+                print("Metric df: \n", env.df_metrics.describe())
+                # Compute the error metrics
+                mean_error_x = env.df_metrics["diff_x"].mean()
+                mean_error_y = env.df_metrics["diff_y"].mean()
+                mean_error_z = env.df_metrics["diff_z"].mean()
+                std_error_x = env.df_metrics["diff_x"].std()
+                std_error_y = env.df_metrics["diff_y"].std()
+                std_error_z = env.df_metrics["diff_z"].std()
+                print(f"Mean Error X: {mean_error_x}, Std Error X: {std_error_x}")
+                print(f"Mean Error Y: {mean_error_y}, Std Error Y: {std_error_y}")
+                print(f"Mean Error Z: {mean_error_z}, Std Error Z: {std_error_z}")
+                print(f"Overall Mean Error: {(mean_error_x**2 + mean_error_y**2 + mean_error_z**2)**0.5}")
+                print("\n\n")
     print("\n Graph mapping: ", env.Graph.state_mapping)
