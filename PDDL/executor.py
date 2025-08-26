@@ -126,7 +126,7 @@ class Executor_Diffusion(Executor):
                  oracle=False, 
                  wrapper=None, 
                  horizon=None, 
-                 use_yolo=False, 
+                 use_yolo=True, 
                  save_data=False,
                  tracked_positions={}
                  ):
@@ -180,6 +180,17 @@ class Executor_Diffusion(Executor):
         policy.reset()
         self.model = policy
 
+    def pixel_to_world_dual(self, px1, py1, w1, h1, conf1, px2, py2, w2, h2, conf2, ee_x, ee_y, ee_z):
+        # Load linear Regression models for cube positions
+        models_dual = joblib.load("dual_cam_calibration_models.pkl")
+        reg_x_dual, reg_y_dual, reg_z_dual = models_dual["reg_x"], models_dual["reg_y"], models_dual["reg_z"]
+
+        features = np.array([[px1, py1, w1, h1, conf1, px2, py2, w2, h2, conf2, ee_x, ee_y, ee_z]])
+        x = reg_x_dual.predict(features)[0]
+        y = reg_y_dual.predict(features)[0]
+        z = reg_z_dual.predict(features)[0]
+        return x*1000., y*1000., z*1000.
+    
     def pixel_to_world(self, px, py):
         # Load linear Regression models for cube positions
         models = joblib.load("calibration_models.pkl")
@@ -255,17 +266,6 @@ class Executor_Diffusion(Executor):
 
             # Get the ground truth position of the cube
             ground_truth_xyz = cubes_obs[self.map_id_semantic[cls]]
-
-            # Compare the ground truth position with regression model predictions
-            predicted_xyz = self.pixel_to_world(x, y)
-            self.detected_positions.update({self.map_id_semantic[cls]: predicted_xyz})
-            cubes_predicted_xyz.update({self.map_id_semantic[cls]: predicted_xyz})
-            # Print the predicted and ground truth positions
-            #print(f"Predicted: {predicted_xyz}, Ground Truth: {ground_truth_xyz}", "Error: ", np.linalg.norm(np.array(predicted_xyz) - np.array(ground_truth_xyz)))
-
-            # Store the center of the bounding box
-            #self.bboxes_centers.update({'px': x, 'py': y, 'w': w, 'h': h, 'conf': conf, 'cls': cls, 'x': ground_truth_xyz[0], 'y': ground_truth_xyz[1], 'z': ground_truth_xyz[2]})
-            # For each detection
             
             if image2 is not None:
                 found_match = False
@@ -301,6 +301,7 @@ class Executor_Diffusion(Executor):
                             "world_z": ground_truth_xyz[2],
                         })
                 if not found_match:
+                    x_cam2, y_cam2, w_cam2, h_cam2, conf_cam2 = 0, 0, 0, 0, 0
                     self.bboxes_centers.append({
                                 "px_cam1": x,
                                 "py_cam1": y,
@@ -320,6 +321,18 @@ class Executor_Diffusion(Executor):
                                 "world_y": ground_truth_xyz[1],
                                 "world_z": ground_truth_xyz[2],
                             })
+                # Use dual camera regression to estimate the position
+                predicted_xyz = self.pixel_to_world_dual(x, y, w, h, conf, x_cam2, y_cam2, w_cam2, h_cam2, conf_cam2, ee_pos[0], ee_pos[1], ee_pos[2])
+            else:
+                # Use single camera regression to estimate the position
+                predicted_xyz = self.pixel_to_world(x, y)
+
+            self.detected_positions.update({self.map_id_semantic[cls]: predicted_xyz})
+            cubes_predicted_xyz.update({self.map_id_semantic[cls]: predicted_xyz})
+
+            # Print the predicted and ground truth positions
+            #print(f"Predicted: {predicted_xyz}, Ground Truth: {ground_truth_xyz*1000.}", "Error: ", np.linalg.norm(np.array(predicted_xyz) - np.array(ground_truth_xyz*1000.)))
+
 
             if save_video:
                 # Draw box + label
@@ -373,11 +386,11 @@ class Executor_Diffusion(Executor):
         if action_step == "PickPlace":
             oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]], obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
         elif action_step == "ReachPick":
-            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]+ [-8,0,0]])
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]] + [-14,0,0]])
         elif action_step == "Grasp":
             oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
         elif action_step == "ReachDrop":
-            oracle = 1.2*np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]] +[-10,20,0]]) #[-10,5,0]]) #best, 2nd
+            oracle = 1.2*np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])# +[-10,20,0]]) #[-10,5,0]]) #best, 2nd
         elif action_step == "Drop":
             oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
         else:
@@ -410,25 +423,25 @@ class Executor_Diffusion(Executor):
         # cubes_obs is a dictionary of shape {cube_id: [x, y, z]}
 
         for key in self.tracked_positions.keys():
-                try:
-                    z_position = cubes_xyz[key][2]
-                    #y_position = cubes_xyz[key][1]
-                except:
-                    pass
-                print("Using tracked position for cube: ", key, " position: ", self.tracked_positions[key])
+                # try:
+                #     z_position = cubes_xyz[key][2]
+                #     #y_position = cubes_xyz[key][1]
+                # except:
+                #     pass
+                #print("Using tracked position for cube: ", key, " position: ", self.tracked_positions[key])
                 cubes_xyz[key] = self.tracked_positions[key]
-                try:
-                    cubes_xyz[key][2] = z_position
-                    #cubes_xyz[key][1] = y_position
-                except:
-                    pass
+                # try:
+                #     cubes_xyz[key][2] = z_position
+                #     #cubes_xyz[key][1] = y_position
+                # except:
+                #     pass
 
         if obj_to_pick in cubes_xyz:
             obj_to_pick_xyz = cubes_xyz[obj_to_pick]
-            obs[7:10] = np.asarray(obj_to_pick_xyz)*1000.0
+            obs[7:10] = np.asarray(obj_to_pick_xyz)#*1000.0
         if place_to_drop in cubes_xyz:
             place_to_drop_xyz = cubes_xyz[place_to_drop]
-            obs[4:7] = np.asarray(place_to_drop_xyz)*1000.0
+            obs[4:7] = np.asarray(place_to_drop_xyz)#*1000.0
         return obs
                     
     def obs_base_from_info(self, info):
@@ -451,7 +464,7 @@ class Executor_Diffusion(Executor):
             if 'grasped' in relation and value:
                 # Get the cube id
                 cube_id = relation.split('(')[1].split(',')[0].split(')')[0]
-                print("Cube {} is grasped".format(cube_id))
+                #print("Cube {} is grasped".format(cube_id))
                 # Get the ee position
                 # Update the tracked position of the cube
                 #ee_pos += np.array([-0.02, 0.01, 0.0]) # Add an offset to the z position
@@ -514,10 +527,10 @@ class Executor_Diffusion(Executor):
                         ground_truth_xyz = cubes_obs
                         ee_pos = info[0]['ee_pos'][ni]
                         #print("Image shape: ", image.shape)
-                        if len(self.detected_positions) >= 3 and not(self.save_data):
+                        if len(self.detected_positions) >= 3 and not(self.save_data) and self.id in ["Grasp", "Drop"]:
                             # If the detected positions are already set, skip the yolo estimation
                             cubes_xyz = copy.deepcopy(self.detected_positions)
-                            print("Using detected positions: ", cubes_xyz, "compared to ground truth: ", ground_truth_xyz)
+                            #print("Using detected positions: ", cubes_xyz, "compared to ground truth: ", ground_truth_xyz)
                         else:
                             cubes_xyz = self.yolo_estimate(image1 = np.array(image), 
                                                            image2=np.array(roboteye_images[0][ni]), 
@@ -527,15 +540,15 @@ class Executor_Diffusion(Executor):
                         if len(self.tracked_positions) >= 3:
                             # If the tracked positions are already set, skip the yolo estimation
                             # Get z positions of the cubes from yolo estimations first
-                            z_positions = {}
-                            y_positions = {}
-                            for key in cubes_xyz.keys():
-                                z_positions[key] = cubes_xyz[key][2]
+                            #z_positions = {}
+                            #y_positions = {}
+                            #for key in cubes_xyz.keys():
+                                #z_positions[key] = cubes_xyz[key][2]
                                 #y_positions[key] = cubes_xyz[key][1]
                             cubes_xyz = copy.deepcopy(self.tracked_positions)
-                            for key in cubes_xyz.keys():
-                                cubes_xyz[key][2] = z_positions[key]
-                                #cubes_xyz[key][1] = y_positions[key]
+                            #for key in cubes_xyz.keys():
+                            #    cubes_xyz[key][2] = z_positions[key]
+                            #    #cubes_xyz[key][1] = y_positions[key]
                             print("Using tracked positions: ", cubes_xyz, "compared to ground truth: ", ground_truth_xyz)
                         if len(cubes_xyz) > 0:
                             if self.use_yolo:
@@ -584,6 +597,9 @@ class Executor_Diffusion(Executor):
                 # Concatenate the zeros column to the original array
                 #action = np.concatenate((action, zeros_column), axis=2)
                 # Concatenate zeros_colum to action at self.nulified_action_indexes
+                #print("Nulifying action at indexes: ", self.nulified_action_indexes)
+                #print("Original action shape: ", action.shape)
+                #print("Original action: ", action)
                 for index in self.nulified_action_indexes:
                     action = np.insert(action, index, 0, axis=2)
             #print("Action: ", action)

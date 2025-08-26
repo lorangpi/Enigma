@@ -101,8 +101,9 @@ def prepare_data_for_dataset(trajectories, args):
         obs.append(episode[-1][2]) # add the `next_obs` from the last trajectory as the final obs
         obs = np.array(obs) # turn it into np.array
         acts = np.array([step[1] for step in episode])
-        keypoint = np.array([step[3] for step in episode])
-        rews = np.array([step[4] for step in episode])
+        keypoint = np.array([step[2] for step in episode])#
+        #print("obs: ", obs)
+        rews = np.zeros(len(acts))  # Assuming zero rewards for all steps
         infos = np.array([{} for _ in episode])  # Assuming empty dicts for infos
         terminal = True #episode[-1][4]  # The 'done' flag of the last step
         # print("obs shape: ", np.array(obs).shape)
@@ -235,7 +236,10 @@ if __name__ == "__main__":
         print(len(constant_indexes))
         ee_dim = len(demo_trajectories_for_act[0].acts[0]) - len(constant_indexes)
         obs_dim = len(demo_trajectories_for_act[0].obs[0])
-        keypoint_dim = len(demo_trajectories_for_act[0].keypoint[0])
+        try:
+            keypoint_dim = len(demo_trajectories_for_act[0].keypoint[0])
+        except:
+            keypoint_dim = 1
         print("obs_dim: ", obs_dim, " keypoint_dim: ", keypoint_dim, " ee_dim: ", ee_dim)
         # Count total number of timesteps
         for traj in demo_trajectories_for_act:
