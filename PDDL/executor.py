@@ -185,7 +185,11 @@ class Executor_Diffusion(Executor):
         models_dual = joblib.load("dual_cam_calibration_models.pkl")
         reg_x_dual, reg_y_dual, reg_z_dual = models_dual["reg_x"], models_dual["reg_y"], models_dual["reg_z"]
 
-        features = np.array([[px1, py1, w1, h1, conf1, px2, py2, w2, h2, conf2, ee_x, ee_y, ee_z]])
+        features = np.array([[
+            float(px1), float(py1), float(w1), float(h1), float(conf1),
+            float(px2), float(py2), float(w2), float(h2), float(conf2),
+            float(ee_x), float(ee_y), float(ee_z)
+        ]])
         x = reg_x_dual.predict(features)[0]
         y = reg_y_dual.predict(features)[0]
         z = reg_z_dual.predict(features)[0]
@@ -232,11 +236,11 @@ class Executor_Diffusion(Executor):
         # Convert the image to BGR format if it is not already
         image1 = cv2.cvtColor(image1, cv2.COLOR_RGB2BGR)
         # Run YOLO model on the image
-        predictions1 = yolo_model.predict(image1, verbose=False)[0]
+        predictions1 = yolo_model.predict(image1, verbose=False, device="cpu")[0]
         if image2 is not None:
             image2 = cv2.flip(image2, 0)
             image2 = cv2.cvtColor(image2, cv2.COLOR_RGB2BGR)
-            predictions2 = yolo_model.predict(image2, verbose=False)[0]
+            predictions2 = yolo_model.predict(image2, verbose=False, device="cpu")[0]
         #.json()#(image1, confidence=40, overlap=30).json()
         #print("Predictions: ", predictions)
 
