@@ -382,11 +382,14 @@ class Executor_Diffusion(Executor):
         # reach_drop_obs_list = place_to_drop_pos - gripper_pos
         # drop_obs_list = place_to_drop_z - gripper_z, aperture
 
+        # Add 0.06m to the aperture (difference between kinova and panda)
+        obs[index_obs["aperture"][0]] += 60
+
         oracle = np.array([])
         if action_step == "PickPlace":
             oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]], obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
         elif action_step == "ReachPick":
-            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]] + [-14,0,0]])
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]] ]) #+ [-14,0,0]])
         elif action_step == "Grasp":
             oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
         elif action_step == "ReachDrop":
@@ -438,7 +441,7 @@ class Executor_Diffusion(Executor):
 
         if obj_to_pick in cubes_xyz:
             obj_to_pick_xyz = cubes_xyz[obj_to_pick]
-            obs[7:10] = np.asarray(obj_to_pick_xyz)#*1000.0
+            obs[7:10] = np.asarray(obj_to_pick_xyz) + np.array([0.0, 0.0, 20])
         if place_to_drop in cubes_xyz:
             place_to_drop_xyz = cubes_xyz[place_to_drop]
             obs[4:7] = np.asarray(place_to_drop_xyz)#*1000.0
