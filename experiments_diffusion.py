@@ -59,12 +59,12 @@ if __name__ == "__main__":
 
     # Load executors
     reach_pick = Executor_Diffusion(id='ReachPick', 
-                            #policy="/home/lorangpi/Enigma/saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
+                            #policy="./saved_policies/reach_pick/epoch=7900-train_loss=0.008.ckpt",
                             # WORKING POLICY BELOW
-                            #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
-                            #policy="/home/lorangpi/Enigma_save/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
+                            #policy="./saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
+                            #policy="._save/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
                             #policy=f"./policies/neurosym_{args.demos}/reach_pick.ckpt",
-                            policy="/home/lorangpi/Enigma/policies_yolo/reachpick/latest.ckpt",
+                            policy="./policies_yolo/reachpick/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_pick'),
                             nulified_action_indexes=[2, 3],
@@ -72,12 +72,12 @@ if __name__ == "__main__":
                             wrapper = ReachPickWrapper,
                             horizon=10)
     grasp = Executor_Diffusion(id='Grasp', 
-                    #policy="/home/lorangpi/Enigma/saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
+                    #policy="./saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
-                            #policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
-                    #policy="/home/lorangpi/Enigma_save/results_baselines/outputs/2025.01.20/18.02.37_train_diffusion_transformer_lowdim_5_grasp_lowdim/checkpoints/epoch=7300-train_loss=0.021.ckpt",
+                            #policy="./saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
+                    #policy="._save/results_baselines/outputs/2025.01.20/18.02.37_train_diffusion_transformer_lowdim_5_grasp_lowdim/checkpoints/epoch=7300-train_loss=0.021.ckpt",
                     #policy=f"./policies/neurosym_{args.demos}/grasp.ckpt",
-                    policy="/home/lorangpi/Enigma/policies_yolo/grasp/latest.ckpt",
+                    policy="./policies_yolo/grasp/latest.ckpt",
                     I={}, 
                     Beta=termination_indicator('pick'),
                     nulified_action_indexes=[0, 1],
@@ -85,12 +85,12 @@ if __name__ == "__main__":
                     wrapper = PickWrapper,
                     horizon=10)
     reach_drop = Executor_Diffusion(id='ReachDrop', 
-                            #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
+                            #policy="./saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
                             # WORKING POLICY BELOW
-                            #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
-                            #policy="/home/lorangpi/Enigma_save/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
+                            #policy="./saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
+                            #policy="._save/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
                             #policy=f"./policies/neurosym_{args.demos}/latest.ckpt",
-                            policy="/home/lorangpi/Enigma/policies_yolo/reachdrop/latest.ckpt",
+                            policy="./policies_yolo/reachdrop/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_drop'),
                             nulified_action_indexes=[3],
@@ -98,12 +98,12 @@ if __name__ == "__main__":
                             wrapper = ReachDropWrapper,
                             horizon=17)
     drop = Executor_Diffusion(id='Drop', 
-                    #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
+                    #policy="./saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
-                            #policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
-                    #policy="/home/lorangpi/Enigma_save/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
+                            #policy="./saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
+                    #policy="._save/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
                     #policy=f"./policies/neurosym_{args.demos}/drop.ckpt",
-                    policy="/home/lorangpi/Enigma/policies_yolo/drop/latest.ckpt",
+                    policy="./policies_yolo/drop/latest.ckpt",
                     I={}, 
                     Beta=termination_indicator('drop'),
                     nulified_action_indexes=[0, 1],
@@ -113,8 +113,8 @@ if __name__ == "__main__":
 
 
     # pickplace = Executor_Diffusion(id='PickPlace', 
-    #                    policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=5900-train_loss=0.010.ckpt", 
-    #                    #policy="/home/lorangpi/Enigma/saved_policies/epoch=3400-train_loss=0.020.ckpt", 
+    #                    policy="./saved_policies/pick_place/epoch=5900-train_loss=0.010.ckpt", 
+    #                    #policy="./saved_policies/epoch=3400-train_loss=0.020.ckpt", 
     #                    I={}, 
     #                    Beta=termination_indicator('drop'),
     #                    nulified_action_indexes=[],
@@ -122,14 +122,14 @@ if __name__ == "__main__":
     #                    wrapper = DropWrapper,
     #                    horizon=100)
     # place = Executor_Diffusion(id='Place', 
-    #                    policy="/home/lorangpi/Enigma/saved_policies/place/epoch=3400-train_loss=0.015.ckpt", 
+    #                    policy="./saved_policies/place/epoch=3400-train_loss=0.015.ckpt", 
     #                    I={}, 
     #                    Beta=termination_indicator('drop'),
     #                    nulified_action_indexes=[],
     #                    wrapper = DropWrapper,
     #                    horizon=60)
     # pick = Executor_Diffusion(id='Pick', 
-    #                    policy="/home/lorangpi/Enigma/saved_policies/pick/epoch=4450-train_loss=0.011.ckpt", 
+    #                    policy="./saved_policies/pick/epoch=4450-train_loss=0.011.ckpt", 
     #                    I={}, 
     #                    Beta=termination_indicator('pick'),
     #                    nulified_action_indexes=[],
