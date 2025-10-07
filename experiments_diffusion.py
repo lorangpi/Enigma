@@ -201,7 +201,7 @@ if __name__ == "__main__":
 
         env = suite.make(
             "Hanoi",
-            robots="Kinova3",
+            robots="Panda",
             controller_configs=controller_config,
             has_renderer=args.render,
             has_offscreen_renderer=True,
