@@ -2,11 +2,11 @@
 (:domain hanoi)
 (:objects o1 o2 o3 o4 o5 o6 - obj)
 (:init 
-(p1 o5 o5 )
-(p1 o4 o4 )
+(p1 o3 o3 )
+(p1 o6 o6 )
 (p1 o1 o1 )
-(p1 o6 o3 )
-(p1 o2 o6 )
+(p1 o6 o4 )
+(p1 o2 o5 )
 (p1 o1 o2 )
 
 (p3 o2 o1)
