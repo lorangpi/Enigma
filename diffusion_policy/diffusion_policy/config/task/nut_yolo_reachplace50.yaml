@@ -1,4 +1,4 @@
-name: kitchen_yolo_reachplace50
+name: nut_yolo_reachplace50
 
 obs_dim: 10
 action_dim: 3
@@ -9,7 +9,7 @@ env_runner:
 
 dataset:
   _target_: diffusion_policy.dataset.pick_place_dataset.PickPlaceLowdimDataset
-  zarr_path: ../../../CyclicLxM/data/KitchenEnv_seed_0/yolo_obs/hf_traj/reach_place/keypoint/keypoint.zarr
+  zarr_path: ../../../CyclicLxM/data/NutAssembly_seed_0/yolo_obs/hf_traj/reach_place/keypoint/keypoint.zarr
   horizon: ${horizon}
   pad_before: ${eval:'${n_obs_steps}-1+${n_latency_steps}'}
   pad_after: ${eval:'${n_action_steps}-1'}
