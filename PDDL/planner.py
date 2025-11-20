@@ -1,6 +1,7 @@
 import os
 import copy
 import subprocess
+import time
 
 pddl_dir = "./PDDL"
 domain_dir = "Domains"
@@ -27,21 +28,33 @@ def add_predicates_to_pddl(pddl_name, init_predicates, problem_name="problem_dum
         file.writelines(lines)
 
 
-def call_planner(domain, problem, structure="pddl"):
+def call_planner(domain, problem, structure="pddl", timeout=60):
     '''
         Given a domain and a problem file
-        This function return the ffmetric Planner output.
-        In the action format
+        This function returns the Metric-FF planner output.
+        If the planner exceeds `timeout` seconds, it returns (False, False).
     '''
     domain_path = pddl_dir + os.sep + domain_dir + os.sep + domain + ".pddl"
     problem_path = pddl_dir + os.sep + problem_dir + os.sep + problem + ".pddl"
+
     if structure == "pddl":
         run_script = f"./Metric-FF-v2.1/./ff -o {domain_path} -f {problem_path} -s 0"
-        output = subprocess.getoutput(run_script)
-        #print("Output = ", output)
+        try:
+            output = subprocess.run(
+                run_script,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=timeout
+            ).stdout
+        except subprocess.TimeoutExpired:
+            print(f"The planner timed out after {timeout} seconds.")
+            return False, False
+
         if "unsolvable" in output or "goal can be simplified to FALSE" in output:
             print("The planner failed because the problem is unsolvable: {}".format(output))
             return False, False
+
         try:
             output = output.split('ff: found legal plan as follows\n')[1]
             output = output.split('\ntime spent:')[0]
@@ -49,6 +62,7 @@ def call_planner(domain, problem, structure="pddl"):
             output = os.linesep.join([s for s in output.splitlines() if s])
         except Exception as e:
             print("The planner failed because of: {}.\nThe output of the planner was:\n{}".format(e, output))
+            return False, False
 
         plan, game_action_set = _output_to_plan(output, structure=structure)
         return plan, game_action_set

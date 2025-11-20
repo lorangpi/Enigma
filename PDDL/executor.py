@@ -163,7 +163,7 @@ class Executor_Diffusion(Executor):
         #target = "diffusion_policy.diffusion_policy.workspace.train_diffusion_transformer_lowdim_workspace.TrainDiffusionTransformerLowdimWorkspace"
         #cls = hydra.utils.get_class(target)
         cls = TrainDiffusionTransformerLowdimWorkspace
-        cfg.policy.num_inference_steps = 10
+        cfg.policy.num_inference_steps = 8
         #workspace = cls(cfg, output_dir="../data/")
         workspace = cls(cfg)
         workspace: BaseWorkspace
@@ -269,6 +269,7 @@ class Executor_Diffusion(Executor):
             x2, y2 = int(x + w / 2), int(y + h / 2)
 
             # Get the ground truth position of the cube
+            #print("Cube obs keys: ", cubes_obs.keys())
             ground_truth_xyz = cubes_obs[self.map_id_semantic[cls]]
             
             if image2 is not None:
@@ -331,6 +332,9 @@ class Executor_Diffusion(Executor):
                 # Use single camera regression to estimate the position
                 predicted_xyz = self.pixel_to_world(x, y)
 
+            # if self.map_id_semantic[cls] == "cube2":
+            #     predicted_xyz +=  np.asarray([-10,-10,0])
+            #predicted_xyz = [predicted_xyz[0], predicted_xyz[1]*0.95, predicted_xyz[2]]
             self.detected_positions.update({self.map_id_semantic[cls]: predicted_xyz})
             cubes_predicted_xyz.update({self.map_id_semantic[cls]: predicted_xyz})
 
@@ -387,17 +391,17 @@ class Executor_Diffusion(Executor):
         # drop_obs_list = place_to_drop_z - gripper_z, aperture
 
         # Add 0.06m to the aperture (difference between kinova and panda)
-        obs[index_obs["aperture"][0]] += 60
+        #obs[index_obs["aperture"][0]] += 60
 
         oracle = np.array([])
         if action_step == "PickPlace":
             oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]], obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
         elif action_step == "ReachPick":
-            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]] ]) #+ [-14,0,0]])
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]] ])# + [-10,-10,0]])
         elif action_step == "Grasp":
-            oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
+            oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]]+18, obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
         elif action_step == "ReachDrop":
-            oracle = 1.2*np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])# +[-10,20,0]]) #[-10,5,0]]) #best, 2nd
+            oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]+[+0,12,0]]) #[-10,5,0]]) #best, 2nd
         elif action_step == "Drop":
             oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
         else:
@@ -445,7 +449,7 @@ class Executor_Diffusion(Executor):
 
         if obj_to_pick in cubes_xyz:
             obj_to_pick_xyz = cubes_xyz[obj_to_pick]
-            obs[7:10] = np.asarray(obj_to_pick_xyz) + np.array([0.0, 0.0, 20])
+            obs[7:10] = np.asarray(obj_to_pick_xyz) #+ np.array([0.0, 0.0, 20])
         if place_to_drop in cubes_xyz:
             place_to_drop_xyz = cubes_xyz[place_to_drop]
             obs[4:7] = np.asarray(place_to_drop_xyz)#*1000.0
@@ -474,8 +478,8 @@ class Executor_Diffusion(Executor):
                 #print("Cube {} is grasped".format(cube_id))
                 # Get the ee position
                 # Update the tracked position of the cube
-                #ee_pos += np.array([-0.02, 0.01, 0.0]) # Add an offset to the z position
-                self.tracked_positions[cube_id] = np.asarray(ee_pos)
+                ee_pos += np.array([0.00, 0.025, 0.00]) # Add an offset to the z position
+                self.tracked_positions[cube_id] = np.asarray(ee_pos)*1000.0
                 if cube_id == symgoal[0]:
                     # If the cube is the one to pick, update the obs
                     obs[7:10] = np.asarray(ee_pos)*1000.0
@@ -639,4 +643,4 @@ class Executor_Diffusion(Executor):
             #self.save_video(output_path=f"{self.id}_{self.count}.mp4", fps=10)
             self.save_csv_yolo(output_path=f"{self.id}_dualcam_{self.count}.csv")
             self.count += 1
-        return obs, success
+        return obs, success, step_executor

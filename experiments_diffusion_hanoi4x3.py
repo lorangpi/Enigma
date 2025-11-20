@@ -63,10 +63,11 @@ if __name__ == "__main__":
                             # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_pick/epoch=2550-train_loss=0.062.ckpt",
                             #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.44_train_diffusion_transformer_lowdim_5_reach_pick_lowdim/checkpoints/epoch=7800-train_loss=0.035.ckpt",
-                            policy=f"./policies/neurosym_{args.demos}/reach_pick.ckpt",
+                            policy=f"../Enigma_save/policies/neurosym_{args.demos}/reach_pick.ckpt",
+                            #policy="./policies_yolo/reachpick/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_pick'),
-                            nulified_action_indexes=[3],
+                            nulified_action_indexes=[2, 3],
                             oracle=True,
                             wrapper = ReachPickWrapper,
                             horizon=10)
@@ -75,31 +76,34 @@ if __name__ == "__main__":
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/grasp/epoch=3250-train_loss=0.027.ckpt",
                     #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.37_train_diffusion_transformer_lowdim_5_grasp_lowdim/checkpoints/epoch=7300-train_loss=0.021.ckpt",
-                    policy=f"./policies/neurosym_{args.demos}/grasp.ckpt",
+                    policy=f"../Enigma_save/policies/neurosym_{args.demos}/grasp.ckpt",
+                    #policy="./policies_yolo/grasp/latest.ckpt",
                     I={}, 
                     Beta=termination_indicator('pick'),
                     nulified_action_indexes=[0, 1],
                     oracle=True,
                     wrapper = PickWrapper,
-                    horizon=10)
+                    horizon=12)
     reach_drop = Executor_Diffusion(id='ReachDrop', 
                             #policy="/home/lorangpi/Enigma/saved_policies/reach_place/epoch=6450-train_loss=0.011.ckpt", 
                             # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/reach_drop/epoch=2050-train_loss=0.064.ckpt",
                             #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.02.49_train_diffusion_transformer_lowdim_5_reach_place_lowdim/checkpoints/epoch=7300-train_loss=0.033.ckpt",
-                            policy=f"./policies/neurosym_{args.demos}/reach_drop.ckpt",
+                            policy=f"../Enigma_save/policies/neurosym_{args.demos}/reach_drop.ckpt",
+                            #policy="./policies_yolo/reachdrop/latest.ckpt",
                             I={}, 
                             Beta=termination_indicator('reach_drop'),
                             nulified_action_indexes=[3],
                             oracle=True,
                             wrapper = ReachDropWrapper,
-                            horizon=26)
+                            horizon=16)
     drop = Executor_Diffusion(id='Drop', 
                     #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
                     #policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
-                    policy=f"./policies/neurosym_{args.demos}/drop.ckpt",
+                    policy=f"../Enigma_save/policies/neurosym_{args.demos}/drop.ckpt",
+                    #policy="./policies_yolo/drop/latest.ckpt",
                     I={}, 
                     Beta=termination_indicator('drop'),
                     nulified_action_indexes=[0, 1],
@@ -186,12 +190,14 @@ if __name__ == "__main__":
             "Hanoi4x3",
             robots="Kinova3",
             controller_configs=controller_config,
-            has_renderer=True,
+            has_renderer=args.render,
             has_offscreen_renderer=True,
-            horizon=20000 if args.hanoi else 2000,
-            use_camera_obs=False,
-            render_camera="frontview",#"robot0_eye_in_hand", # Available "camera" names = ('frontview', 'birdview', 'agentview', 'robot0_robotview', 'robot0_eye_in_hand')
-            random_reset=False,
+            horizon=100000000,
+            use_camera_obs=True,
+            use_object_obs=False,
+            camera_names=["agentview", "robot0_eye_in_hand"],
+            camera_heights=256,
+            camera_widths=256,
         )
 
         # Wrap the environment
@@ -342,6 +348,7 @@ if __name__ == "__main__":
     pick_place_success = 0
     pick_place_successes = []
     percentage_advancement = []
+    steps_per_action = []
     valid_pick_place_success = 0
 
     def reset_gripper(env):
@@ -395,6 +402,7 @@ if __name__ == "__main__":
         pick_place_success = 0
         # Execute the first operator in the plan
         reset_gripper(env)
+        operator_steps = []
         for operator in plan:
             print("\nExecuting operator: ", operator)
             # Concatenate the observations with the operator effects
@@ -413,13 +421,16 @@ if __name__ == "__main__":
             #pick_loc = env.sim.data.body_xpos[robosuite_obj_body_mapping[obj_to_pick]][:3]
             #drop_loc = env.sim.data.body_xpos[robosuite_obj_body_mapping[obj_to_drop]][:3]
             num_valid_pick_place_queries += 1
+            steps_count = []
             for action_step in Move_action:
                 #if action_step.model == None:
                 action_step.load_policy()
                 print("\tExecuting action: ", action_step.id)
                 symgoal = (obj_to_pick, obj_to_drop)
                 goal = []
-                obs, success = action_step.execute(env, obs, goal, symgoal, render=args.render, setting="4x3")
+                obs, success, step_count = action_step.execute(env, obs, goal, symgoal, render=args.render, setting="4x3")
+                step_count = 8 * step_count
+                steps_count.append(step_count)
                 if not success:
                     print("Execution failed.\n")
                     #break
@@ -438,6 +449,8 @@ if __name__ == "__main__":
             #for _ in range(5):
             #    action = np.array([0, 0, 500, 0])
             #    obs, reward, done, info = env.step([[action, action, action, action]])
+            steps_per_action.append(steps_count)
+        operator_steps.append(steps_per_action)
         pick_place_successes.append(pick_place_success)
         percentage_advancement.append(pick_place_success/len(plan))
         if success:
@@ -451,6 +464,7 @@ if __name__ == "__main__":
 
         print("Successfull pick_place: ", pick_place_successes)
         print("Percentage advancement: ", percentage_advancement)
+        print("Steps per operator: ", operator_steps)
         print("Mean Successful pick_place: ", mean(pick_place_successes))
         print("Mean Percentage advancement: ", mean(percentage_advancement))
         print("Pick placce success rate: ", valid_pick_place_success/num_valid_pick_place_queries)
@@ -462,5 +476,6 @@ if __name__ == "__main__":
             file.write("Success rate: {}\n".format(hanoi_successes/(100)))
             file.write("Mean Successful pick_place: {}\n".format(mean(pick_place_successes)))
             file.write("Mean Percentage advancement: {}\n".format(mean(percentage_advancement)))
+            file.write("Steps per operator: {}\n".format(operator_steps))
             file.write("Pick placce success rate: {}\n".format(valid_pick_place_success/num_valid_pick_place_queries))
 
