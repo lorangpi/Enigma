@@ -127,3 +127,9 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Imitation_learning repo
+imitation_learning/outputs/
+imitation_learning/.ipynb_checkpoints/
+imitation_learning/figures/
+imitation_learning/__pycache__/

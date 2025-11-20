@@ -7,7 +7,7 @@ pddl_dir = "./PDDL"
 domain_dir = "Domains"
 problem_dir = "Problems"
 
-def add_predicates_to_pddl(pddl_name, init_predicates, problem_name="problem_dummy.pddl"):
+def add_predicates_to_pddl(pddl_name, init_predicates):
     pddl_file_path = pddl_dir + os.sep + problem_dir + os.sep + pddl_name
     with open(pddl_file_path, 'r') as file:
         lines = file.readlines()
@@ -21,14 +21,14 @@ def add_predicates_to_pddl(pddl_name, init_predicates, problem_name="problem_dum
             lines.insert(init_index + 1, f'({predicate})\n')
 
     # define new problem file path with the end file being named as "problem_dummy.pddl" (os.sep is used to handle the path separator)
-    problem_path = pddl_dir + os.sep + problem_dir + os.sep + problem_name
+    problem_path = pddl_dir + os.sep + problem_dir + os.sep + "problem_dummy.pddl"
 
     # overwrite the new problem file
     with open(problem_path, 'w') as file:
         file.writelines(lines)
 
 
-def call_planner(domain, problem, structure="pddl", timeout=60):
+def call_planner(domain, problem, structure="pddl"):
     '''
         Given a domain and a problem file
         This function returns the Metric-FF planner output.
