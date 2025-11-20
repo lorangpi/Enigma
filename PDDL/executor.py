@@ -15,6 +15,20 @@ from omegaconf import DictConfig
 from diffusion_policy.common.pytorch_util import dict_apply
 from diffusion_policy.workspace.base_workspace import BaseWorkspace
 from diffusion_policy.workspace.train_diffusion_transformer_lowdim_workspace import TrainDiffusionTransformerLowdimWorkspace
+
+# yolo imports
+from ultralytics import YOLO
+from roboflow import Roboflow
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import cv2
+cv2.destroyAllWindows = lambda: None
+
+rf = Roboflow(api_key="tgB2r9aEPNuMRi0qB1cl")
+project = rf.workspace("cyclicproject").project("hannoi-cubes-agnft")
+version = project.version(2)
+yolo_model = version.model
+
 set_random_seed(0, using_cuda=True)
 
 class Executor():
@@ -43,158 +57,74 @@ class Executor_Diffusion_Diarc(Executor):
         self.device = device
         self.oracle = oracle
 
-    def load_policy(self):
-        path = self.policy
-        # load checkpoint
-        payload = torch.load(open(path, 'rb'), pickle_module=dill)
-        cfg = payload['cfg']
-        cls = TrainDiffusionTransformerLowdimWorkspace
-        workspace = cls(cfg)
-        workspace: BaseWorkspace
-        workspace.load_payload(payload, exclude_keys=None, include_keys=None)
-
-        # get policy from workspace
-        policy = workspace.model
-        if cfg.training.use_ema:
-            policy = workspace.ema_model
-
-        #device = torch.device(self.device)
-        policy.to(self.device)
-        policy.eval()
-        policy.reset()
-        self.model = policy
-
-    def obs_mapping(self, obs, action_step="PickPlace"):
-        # TODO: add the mapping of the input observation to the oracle (i.e., the input obs of the policy)
-        # PickPlace: 7 pick_pos, aperture, place_to_drop_pos (relative to gripper_pos)
-        # ReachPick: 3 pick_pos (relative to gripper_pos)
-        # Grasp: 2 obj_to_pick_z (relative to gripper_z), aperture
-        # ReachDrop: 3 place_to_drop_pos (relative to gripper_pos)
-        # Drop: 2 place_to_drop_z (relative to gripper_z), aperture
-        oracle = np.array([])
-        if action_step == "PickPlace":
-            oracle = None
-        elif action_step == "ReachPick":
-            oracle = None
-        elif action_step == "Grasp":
-            oracle = None
-        elif action_step == "ReachDrop":
-            oracle = None
-        elif action_step == "Drop":
-            oracle = None
-        else:
-            oracle = obs
-        return oracle
-
-    def get_success(self, action_step="PickPlace"):
-        # TODO: Get the success of the action step (i.e., if the action step is successful and terminated or not)
-        success = False
-        done = False
-        return success, done
-
-    def prepare_obs(self, obs, action_step="PickPlace"):
-        obs_dim = {"PickPlace": 7, "ReachPick": 3, "Grasp": 2, "ReachDrop": 3, "Drop": 2}
-        if action_step not in obs_dim.keys():
-            return obs
-        returned_obs = np.zeros((obs.shape[0], len(obs[0]), obs_dim[action_step]))
-        for j, env_n_obs in enumerate(obs):
-            for i in range(len(env_n_obs)):
-                obs_step = env_n_obs[i]
-                # Prepare the observation for the policy
-                obs_policy = self.obs_mapping(obs_step, action_step=action_step)
-                returned_obs[j][i] = obs_policy
-        #print("Returned obs shape: ", returned_obs.shape)
-        #print("Original obs shape: ", obs.shape)
-        return returned_obs
-    
-    def control_void_act(self, action, obs):
-        if len(action[0][0]) < 4:
-            # Concatenate zeros_colum to action at self.nulified_action_indexes
-            for index in self.nulified_action_indexes:
-                error = obs[0][-1][index] - self.control_static[index]
-                action = np.insert(action, index, -error, axis=2)
-        return action
-
-    def valid_state_f(self, state):
-        state = {k: state[k] for k in state if 'on' in k}
-        # Filter only the values that are True
-        state = {key: value for key, value in state.items() if value}
-        # if state has not 3 keys, return None
-        if len(state) != 3:
-            return False
-        # Check if cubes have fallen from other subes, i.e., check if two or more cubes are on the same peg
-        pegs = []
-        for relation, value in state.items():
-            _, peg = relation.split('(')[1].split(',')
-            pegs.append(peg)
-        if len(pegs) != len(set(pegs)):
-            #print("Two or more cubes are on the same peg")
-            return False
-        return True
-
-    def execute(self, env, symgoal, info = {}):
+    def execute(self, env, obs, goal, symgoal, render=False):
         '''
         This method is responsible for executing the policy on the given state. It takes a state as a parameter and returns the action 
         produced by the policy on that state. 
         '''
-        obs = self.get_obs()
-        self.control_static = {0: obs[0][-1][0], 1: obs[0][-1][1], 2: obs[0][-1][2], 3: obs[0][-1][3]}
         horizon = self.horizon if self.horizon is not None else 500
+        dummy_env = self.wrapper(env, nulified_action_indexes=self.nulified_action_indexes, horizon=horizon) if self.wrapper is not None else env
         print("\tTask goal: ", symgoal)
+        print("\tLoading policy {}".format(self.policy))
+        print("\tNumber of nulified indexes: ", len(self.nulified_action_indexes))
+        print("\tAction space: ", dummy_env.action_space)
+        if self.model is None:
+            self.model = self.alg.load(self.policy, 
+                                       env=dummy_env,
+                                       custom_objects={'observation_space': dummy_env.observation_space, 
+                                                       'action_space': dummy_env.action_space,
+                                                       #'replay_buffer_class': None,
+                                                       })
         step_executor = 0
         done = False
-        success = False 
+        success = False
         while not done:
-            # Prepare the observation for the policy
-            obs_copy = np.copy(obs)
-            if self.oracle:
-                obs = self.prepare_obs(obs, action_step=self.id)
-            # Diffusion Library Formatting of obs
-            np_obs_dict = {
-                'obs': obs.astype(np.float32)
-            }
-            # Device transfer
-            obs_dict = dict_apply(np_obs_dict, 
-                lambda x: torch.from_numpy(x).to(
-                    device=self.device))
-            # Run policy
-            with torch.no_grad():
-                action_dict = self.model.predict_action(obs_dict)
-            # Device_transfer
-            np_action_dict = dict_apply(action_dict,
-                lambda x: x.detach().to('cpu').numpy())
-            action = np_action_dict['action']
-            # If the actions in action (array) do not have 4 elements, then concatenate [0] to the action array
-            action = self.control_void_act(action, obs_copy)
-            # Step env
-            obs = []
-            for i in range(len(action[0])):
-                move_arm(action)
-                obs.append(get_all_pos())
-            obs = np.array([obs])
-            success, done = self.get_success(action_step=self.id)
+            if goal is not None:
+                #print("\tLow level goal: ", goal)
+                #goal_copy = copy.deepcopy(goal)
+                goal_copy = np.copy(goal)
+                obs = np.concatenate((obs, goal_copy))
+                #print("\tObservation shape: ", obs.shape)
+                #print("\tObservation: ", obs)
+            action, _states = self.model.predict(obs)
+            #print("Input action: ", action)
+            # if self.nulified_action_indexes is not empty, fill the action with zeros at the indexes
+            if self.nulified_action_indexes != []:
+                for index in self.nulified_action_indexes:
+                    action = np.insert(action, index, 0)
+            #print("Transformed action: ", action)        
+            try: 
+                obs, reward, terminated, truncated, info = env.step(action)
+                #print(obs.shape)
+                done = terminated or truncated
+            except:
+                obs, reward, done, info = env.step(action)
             step_executor += 1
-            if done:
-                print("Environment terminated")
+            success = self.Beta(env, symgoal)
             if success:
+                print("\tSuccess: Task completed in {} steps\n".format(step_executor))
+                break
+            done = success
+            if step_executor > 500:
                 done = True
-            if step_executor > horizon:
-                print("Reached executor horizon")
-                done = True 
-        return success
-
-
+            if render:
+                env.render()
+        return obs, success
+    
 class Executor_Diffusion(Executor):
-    def __init__(self, id, policy, I, Beta, Circumstance=None, basic=False, nulified_action_indexes=[], oracle=False, wrapper=None, horizon=None, device="cpu"):
+    def __init__(self, id, policy, I, Beta, Circumstance=None, basic=False, nulified_action_indexes=[], oracle=False, wrapper=None, horizon=None):
         super().__init__(id, "RL", I, Beta, Circumstance, basic)
         self.policy = policy
         self.model = None
         self.nulified_action_indexes = nulified_action_indexes
         self.wrapper = wrapper
         self.horizon = horizon
-        self.device = device
+        #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
         self.oracle = oracle
-        self.dummy_count = 0
+        self.use_yolo = True
+        self.image_buffer = []
+        #print(self.device)
 
     def load_policy(self):
         path = self.policy
@@ -202,6 +132,8 @@ class Executor_Diffusion(Executor):
         payload = torch.load(open(path, 'rb'), pickle_module=dill)
         cfg = payload['cfg']
         cls = TrainDiffusionTransformerLowdimWorkspace
+        cfg.policy.num_inference_steps = 10
+        #workspace = cls(cfg, output_dir="../data/")
         workspace = cls(cfg)
         workspace: BaseWorkspace
         workspace.load_payload(payload, exclude_keys=None, include_keys=None)
@@ -217,30 +149,42 @@ class Executor_Diffusion(Executor):
         policy.reset()
         self.model = policy
 
-    # def relative_obs_mapping(self, obs, action_step="PickPlace"):
-    #     #index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z": (9,10), "place_to_drop_z": (6,7)}
-    #     index_obs = {"gripper_pos": (0,3), "aperture": (9,10), "place_to_drop_pos": (6,9), "obj_to_pick_pos": (3,6), "gripper_z": (2,3), "obj_to_pick_z": (5,6), "place_to_drop_z": (8,9)}
-    #     oracle = np.array([])
-    #     if action_step == "PickPlace":
-    #         oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]], obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
-    #     elif action_step == "ReachPick":
-    #         oracle = np.concatenate([obs[index_obs["obj_to_pick_pos"][0]:index_obs["obj_to_pick_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
-    #     elif action_step == "Grasp":
-    #         oracle = np.concatenate([obs[index_obs["obj_to_pick_z"][0]:index_obs["obj_to_pick_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
-    #     elif action_step == "ReachDrop":
-    #         oracle = np.concatenate([obs[index_obs["place_to_drop_pos"][0]:index_obs["place_to_drop_pos"][1]] - obs[index_obs["gripper_pos"][0]:index_obs["gripper_pos"][1]]])
-    #     elif action_step == "Drop":
-    #         oracle = np.concatenate([obs[index_obs["place_to_drop_z"][0]:index_obs["place_to_drop_z"][1]] - obs[index_obs["gripper_z"][0]:index_obs["gripper_z"][1]], obs[index_obs["aperture"][0]:index_obs["aperture"][1]]])
-    #     elif action_step == "PickNut":
-    #         oracle = np.concatenate([obs[3:6], [obs[-1]]]) + [0,0,0.1182,0]
-    #         print(oracle)
-    #     elif action_step == "PlaceNut":
-    #         oracle = obs[-4:]
-    #     else:
-    #         oracle = obs
-    #     print(oracle)
-    #     return oracle
-    
+    def yolo_estimate(self, image1):
+        # Run YOLO model on the image
+        predictions = yolo_model.predict(image1, save=False, verbose=False)
+
+        # Convert to numpy array (YOLO input may be PIL or ndarray)
+        if not isinstance(image1, np.ndarray):
+            image1 = np.array(image1)
+
+        # Draw bounding boxes
+        for pred in predictions[0].boxes.data.cpu().numpy():  
+            # YOLOv8 outputs: [x1, y1, x2, y2, conf, class]
+            x1, y1, x2, y2, conf, cls = pred
+            x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])
+            cv2.rectangle(image1, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(image1, f"{int(cls)}:{conf:.2f}", (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        # Append to buffer for video saving
+        if not hasattr(self, "image_buffer"):
+            self.image_buffer = []
+        self.image_buffer.append(image1.copy())
+
+    def save_video(self, output_path="output.mp4", fps=10):
+        if not self.image_buffer:
+            print("No frames to save.")
+            return
+        
+        height, width, _ = self.image_buffer[0].shape
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+        for frame in self.image_buffer:
+            out.write(frame)
+
+        out.release()
+        print(f"Video saved at {output_path}")
 
     def relative_obs_mapping(self, obs, action_step="PickPlace"):
         #index_obs = {"gripper_pos": (0,3), "aperture": (3,4), "place_to_drop_pos": (4,7), "obj_to_pick_pos": (7,10), "gripper_z": (2,3), "obj_to_pick_z": (9,10), "place_to_drop_z": (6,7)}
@@ -261,8 +205,7 @@ class Executor_Diffusion(Executor):
             oracle = obs[-4:] + [+0.02,-0.08,0,0] if self.dummy_count % 2 == 0 else obs[-4:] + [+0,0.0,0,0]
         else:
             oracle = obs
-        #print(oracle)
-        return oracle*-1
+        return oracle
 
     def prepare_obs(self, obs, action_step="PickPlace"):
         obs_dim = {"PickPlace": 7, "ReachPick": 3, "Grasp": 2, "ReachDrop": 3, "Drop": 2, "PickNut": 4, "PlaceNut": 4}
@@ -338,7 +281,8 @@ class Executor_Diffusion(Executor):
         success = False 
         while not done:
             # Prepare the observation for the policy
-            obs_copy = np.copy(obs)
+            if self.use_yolo:
+                print("INFO: ", info)
             if self.oracle:
                 obs = self.prepare_obs(obs, action_step=self.id)
             if obs_base:
@@ -377,8 +321,7 @@ class Executor_Diffusion(Executor):
             # If the actions in action (array) do not have 4 elements, then concatenate [0] to the action array
             action = self.control_void_act(action, obs_copy)
             # step env
-            action = self.prepare_act(action, action_step=self.id)
-            #print("Transformed action: ", action)
+            #print(self.device)
             try: 
                 obs, reward, terminated, truncated, info = env.step(action)
             except:

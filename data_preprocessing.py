@@ -5,7 +5,7 @@ from datasets import Dataset, Features, Value, ClassLabel, Sequence
 #from imitation.data import types, TrajectorywithRew
 from imitation.data.types import TrajectoryWithRew
 from imitation.data import huggingface_utils, serialize
-
+import sys
 
 class GoalTrajectory(TrajectoryWithRew):
     """A `Trajectory` that additionally includes reward information."""
@@ -87,6 +87,14 @@ def prepare_data_for_dataset(trajectories, args):
     for trajectory in trajectories:
         if not trajectory:
             continue
+        print(trajectory)
+        print("trajectory length: ", len(trajectory))
+        # Print all shapes of the trajectory
+        for i, step in enumerate(trajectory):
+            print(f"Step {i} shapes: obs={np.array(step[0]).shape}, act={np.array(step[1]).shape}, next_obs={np.array(step[2]).shape}, rew={np.array(step[3]).shape}, done={step[4]}")
+        print(trajectory.shape)
+        # Stop the execution
+        sys.exit(0)
         episode = trajectory[0]
         #print("episode: ", episode)
         # Assuming each step has observations, actions, next_obs, rewards, and done flags
