@@ -3,7 +3,19 @@ import numcodecs
 import zipfile, pickle, copy, json, argparse, os
 import numpy as np
 from datasets import Dataset, Features, Value, ClassLabel, Sequence
-from imitation.data.types import TrajectoryWithRew, TrajectoryWithKeypoint
+from imitation.data.types import TrajectoryWithRew
+import dataclasses
+
+@dataclasses.dataclass(frozen=True, eq=False)
+class TrajectoryWithKeypoint(TrajectoryWithRew):
+    """A `Trajectory` that additionally includes reward information."""
+
+    keypoint: np.ndarray
+    """Reward, shape (trajectory_len, ). dtype float."""
+
+    def __post_init__(self):
+        """Performs input validation, including for rews."""
+        super().__post_init__()
 
 
 class GoalTrajectory(TrajectoryWithRew):
@@ -96,15 +108,26 @@ def prepare_data_for_dataset(trajectories, args):
         if not trajectory:
             continue
         episode = trajectory[0]
-        # Assuming each step has observations, actions, next_obs, rewards, and done flags
-        obs = [step[0] for step in episode]
-        obs.append(episode[-1][2]) # add the `next_obs` from the last trajectory as the final obs
-        obs = np.array(obs) # turn it into np.array
-        acts = np.array([step[1] for step in episode])
-        keypoint = np.array([step[3] for step in episode])
-        rews = np.array([step[4] for step in episode])
-        infos = np.array([{} for _ in episode])  # Assuming empty dicts for infos
-        terminal = True #episode[-1][4]  # The 'done' flag of the last step
+        if args.lxm:
+            # episode in the format of (act, obs, next_act, next_obs, etc...)
+            obs = np.array([np.reshape(episode[i], -1) if len(episode[i].shape) > 1 else episode[i] for i in range(1, len(episode), 2)])
+            acts = np.array([episode[i] for i in range(2, len(episode), 2)])
+            keypoint = np.array([[0.0] for i in range(1, len(episode), 2)])
+            rews = np.array([0.0 for _ in range(1, len(episode)//2)])
+            infos = np.array([{} for _ in range(1, len(episode)//2)])  # Assuming empty dicts for infos
+            terminal = True
+            #print("obs shape: ", np.array(obs).shape)
+            #print("acts shape: ", np.array(acts).shape)
+        else:
+            # Assuming each step has observations, actions, next_obs, rewards, and done flags
+            obs = [step[0] for step in episode]
+            obs.append(episode[-1][2]) # add the `next_obs` from the last trajectory as the final obs
+            obs = np.array(obs) # turn it into np.array
+            acts = np.array([step[1] for step in episode])
+            keypoint = np.array([step[3] for step in episode])
+            rews = np.array([step[4] for step in episode])
+            infos = np.array([{} for _ in episode])  # Assuming empty dicts for infos
+            terminal = True #episode[-1][4]  # The 'done' flag of the last step
         # print("obs shape: ", np.array(obs).shape)
         # print("acts shape: ", np.array(acts).shape)
         # print("rews shape: ", np.array(rews).shape)
@@ -168,6 +191,7 @@ if __name__ == "__main__":
     parser.add_argument('--filter_actions', type=bool, default=False, help='Filter actions')
     parser.add_argument('--num_demos', type=int, default=0, help='Number of demonstrations')
     parser.add_argument('--save_dir', type=str, default='', help='Save Directory')
+    parser.add_argument('--lxm', action='store_true', help='Use lxm project format of data')
     args = parser.parse_args()
 
     # Load the buffer from the zip file
@@ -233,6 +257,8 @@ if __name__ == "__main__":
 
         total_timesteps = 0
         print(len(constant_indexes))
+        print("Num of trajectories: ", len(demo_trajectories_for_act))
+        print(demo_trajectories_for_act[0].acts)
         ee_dim = len(demo_trajectories_for_act[0].acts[0]) - len(constant_indexes)
         obs_dim = len(demo_trajectories_for_act[0].obs[0])
         keypoint_dim = len(demo_trajectories_for_act[0].keypoint[0])

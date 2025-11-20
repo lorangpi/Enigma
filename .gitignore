@@ -141,3 +141,7 @@ imitation_learning/__pycache__/
 forklift_data/
 !forklift_data/csv/
 !forklift_data/csv/demo/
+
+# PDDL files
+PDDL/Problems/problem_dummy.pddl
+PDDL/__pycache__

@@ -95,11 +95,9 @@ if __name__ == "__main__":
                             wrapper = ReachDropWrapper,
                             horizon=17)
     drop = Executor_Diffusion(id='Drop', 
-                    #policy="/home/lorangpi/Enigma/saved_policies/drop/epoch=7850-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
                             #policy="/home/lorangpi/Enigma/saved_policies_27u/drop/epoch=3350-train_loss=0.051.ckpt",
                     policy="/home/lorangpi/Enigma/results_baselines/outputs/2025.01.20/18.03.40_train_diffusion_transformer_lowdim_5_drop_lowdim/checkpoints/epoch=7650-train_loss=0.039.ckpt",
-                    #policy=f"./policies/neurosym_{args.demos}/drop.ckpt",
                     I={}, 
                     Beta=termination_indicator('drop'),
                     nulified_action_indexes=[0, 1],
@@ -108,32 +106,31 @@ if __name__ == "__main__":
                     horizon=10)
 
 
-    # pickplace = Executor_Diffusion(id='PickPlace', 
-    #                    policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=5900-train_loss=0.010.ckpt", 
-    #                    #policy="/home/lorangpi/Enigma/saved_policies/epoch=3400-train_loss=0.020.ckpt", 
-    #                    I={}, 
-    #                    Beta=termination_indicator('drop'),
-    #                    nulified_action_indexes=[],
-    #                    oracle=True,
-    #                    wrapper = DropWrapper,
-    #                    horizon=100)
-    # place = Executor_Diffusion(id='Place', 
-    #                    policy="/home/lorangpi/Enigma/saved_policies/place/epoch=3400-train_loss=0.015.ckpt", 
-    #                    I={}, 
-    #                    Beta=termination_indicator('drop'),
-    #                    nulified_action_indexes=[],
-    #                    wrapper = DropWrapper,
-    #                    horizon=60)
-    # pick = Executor_Diffusion(id='Pick', 
-    #                    policy="/home/lorangpi/Enigma/saved_policies/pick/epoch=4450-train_loss=0.011.ckpt", 
-    #                    I={}, 
-    #                    Beta=termination_indicator('pick'),
-    #                    nulified_action_indexes=[],
-    #                    wrapper = DropWrapper,
-    #                    horizon=40)
+    pickplace = Executor_Diffusion(id='PickPlace', 
+                       policy="/home/lorangpi/Enigma/saved_policies/pick_place/epoch=5900-train_loss=0.010.ckpt",  
+                       I={}, 
+                       Beta=termination_indicator('drop'),
+                       nulified_action_indexes=[],
+                       oracle=True,
+                       wrapper = DropWrapper,
+                       horizon=100)
+    place = Executor_Diffusion(id='Place', 
+                       policy="/home/lorangpi/Enigma/lxm/hanoi_il/2025.03.26/07.44.34_train_diffusion_transformer_lowdim_lxm_obj_hanoi_pick/checkpoints/epoch=6800-train_loss=0.004.ckpt", 
+                       I={}, 
+                       Beta=termination_indicator('drop'),
+                       nulified_action_indexes=[],
+                       wrapper = DropWrapper,
+                       horizon=30)
+    pick = Executor_Diffusion(id='Pick', 
+                       policy="/home/lorangpi/Enigma/lxm/hanoi_il/2025.03.26/07.44.34_train_diffusion_transformer_lowdim_lxm_obj_hanoi_pick/checkpoints/epoch=5300-train_loss=0.007.ckpt", 
+                       I={}, 
+                       Beta=termination_indicator('pick'),
+                       nulified_action_indexes=[],
+                       wrapper = DropWrapper,
+                       horizon=30)
 
     Move_action = [reach_pick, grasp, reach_drop, drop]
-    #Move_action = [pick, reach_drop, drop]
+    #Move_action = [pick, place]
     #Move_action = [pickplace]
 
     # Create an env wrapper which transforms the outputs of reset() and step() into gym formats (and not gymnasium formats)
