@@ -48,7 +48,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--hanoi', action='store_true', help='Use the Hanoi environment')
     parser.add_argument('--demos', type=int, default=0, help='Number of demonstrations used by the learned policies')
-    parser.add_argument('--random_reset', action='store_true', help='Use the Hanoi environment')
+    parser.add_argument('--random_reset', action='store_true', help='Use random reset Hanoi environment')
     args = parser.parse_args()
     #np.random.seed(args.seed)
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                             nulified_action_indexes=[2, 3],
                             oracle=True,
                             wrapper = ReachPickWrapper,
-                            horizon=7)
+                            horizon=20)
     grasp = Executor_Diffusion(id='Grasp', 
                     #policy="./saved_policies/grasp/epoch=7700-train_loss=0.021.ckpt", 
                     # WORKING POLICY BELOW
