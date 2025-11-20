@@ -33,7 +33,7 @@ def termination_indicator(operator):
         def Beta(env, symgoal):
             detector = Robosuite_Hanoi_Detector(env)
             state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
-            condition = state[f"on({symgoal[0]},{symgoal[1]})"]
+            condition = state[f"on({symgoal[0]},{symgoal[1]})"] and not state[f"grasped({symgoal[0]})"]
             return condition
     elif operator == 'reach_pick':
         def Beta(env, symgoal):
@@ -71,7 +71,7 @@ env = GymWrapper(env)
 # Load executors
 reach_pick = Executor_GAIL(id='ReachPick', 
                          alg=SoftActor, 
-                         policy="/home/lorangpi/Enigma/imitation_learning/outputs/GAIL_reach_pick/07-06_06-35-34/agent_330000.pth",
+                         policy="/home/lorangpi/Enigma/hpc/reach_pick/agent_630000.pth",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
@@ -79,7 +79,7 @@ reach_pick = Executor_GAIL(id='ReachPick',
                          horizon=200)
 pick = Executor_GAIL(id='Pick', 
                    alg=SoftActor, 
-                   policy="/home/lorangpi/Enigma/imitation_learning/outputs/GAIL_pick/07-06_06-34-29/agent_900000.pth", 
+                   policy="/home/lorangpi/Enigma/hpc/pick/agent_1900000.pth", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[0,1],
@@ -87,7 +87,7 @@ pick = Executor_GAIL(id='Pick',
                    horizon=70)
 reach_drop = Executor_GAIL(id='ReachDrop', 
                          alg=SoftActor, 
-                         policy="/home/lorangpi/Enigma/imitation_learning/outputs/GAIL_reach_drop/07-06_06-37-21/agent_720000.pth", 
+                         policy="/home/lorangpi/Enigma/hpc/reach_drop/agent_2700000.pth", 
                          I={}, 
                          Beta=termination_indicator('reach_drop'),
                          nulified_action_indexes=[3],
@@ -95,7 +95,7 @@ reach_drop = Executor_GAIL(id='ReachDrop',
                          horizon=200)
 drop = Executor_GAIL(id='Drop', 
                    alg=SoftActor, 
-                   policy="/home/lorangpi/Enigma/imitation_learning/outputs/GAIL_drop/07-06_06-37-18/agent_310000.pth", 
+                   policy="/home/lorangpi/Enigma/hpc/drop/agent_330000.pth", 
                    I={}, 
                    Beta=termination_indicator('drop'),
                    nulified_action_indexes=[0,1],
@@ -244,10 +244,16 @@ for i in range(100):
                     reach_drop_failure += 1
                 elif 'Drop' in action_step.id:
                     drop_failure += 1
-                break
-        if not success:
+        #        break
+        #if not success:
+        #    break
+        state = detector.get_groundings(as_dict=True, binary_to_float=False, return_distance=False)
+        if action_step.id == "Drop" and state[f"on({obj_mapping[obj_to_pick]},{obj_mapping[obj_to_drop]})"]:
+            num_successful_operations += 1
+        elif action_step.id != "Drop":
+            pass
+        else:
             break
-        num_successful_operations += 1
     successful_operations.append(num_successful_operations)
     percentage_advancement.append(num_successful_operations/len(plan))
     if success:

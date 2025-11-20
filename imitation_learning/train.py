@@ -24,6 +24,9 @@ def main(cfg: DictConfig):
 
 
 def train(cfg: DictConfig, file_prefix: str='') -> float:
+  # Write in the log file the configuration used for training
+  with open(f'{file_prefix}config.yaml', 'w') as f:
+    OmegaConf.save(cfg, f)
   # Configuration check
   assert cfg.algorithm in ['AdRIL', 'BC', 'DRIL', 'GAIL', 'GMMIL', 'PWIL', 'RED', 'SAC']
   assert cfg.env in ENVS

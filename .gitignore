@@ -127,9 +127,17 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+*.pyc
 
 # Imitation_learning repo
 imitation_learning/outputs/
 imitation_learning/.ipynb_checkpoints/
 imitation_learning/figures/
 imitation_learning/__pycache__/
+
+!diffusion_policy/
+
+# Forklift repo
+forklift_data/
+!forklift_data/csv/
+!forklift_data/csv/demo/

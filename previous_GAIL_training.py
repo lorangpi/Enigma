@@ -7,11 +7,15 @@ import numpy as np
 import robosuite as suite
 import gymnasium as gym
 from pathlib import Path
+import robosuite as suite
 from robosuite.wrappers import GymWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_drop import DropWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_reach_pick import ReachPickWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_reach_drop import ReachDropWrapper
+from robosuite.wrappers.behavior_cloning.hanoi_pick_place import PickPlaceWrapper
+from robosuite.wrappers.behavior_cloning.hanoi_reach_and_pick import ReachAndPickWrapper
+from robosuite.wrappers.behavior_cloning.hanoi_reach_and_drop import ReachAndPlaceWrapper
 from imitation.algorithms.adversarial.gail import GAIL
 from imitation.rewards.reward_nets import BasicRewardNet
 from imitation.util.networks import RunningNorm
@@ -27,8 +31,9 @@ from stable_baselines3.common.callbacks import CheckpointCallback, BaseCallback
 from imitation.data import serialize
 from record_demos_automation import to_datestring
 from typing import (Callable, List,)
-env_map = {'pick': PickWrapper, 'drop': DropWrapper, 'reach_pick': ReachPickWrapper, 'reach_drop': ReachDropWrapper}
-env_horizon = {'pick': 70, 'drop': 50, 'reach_pick': 200, 'reach_drop': 200}
+env_map = {'pick': PickWrapper, 'drop': DropWrapper, 'reach_pick': ReachPickWrapper, 'reach_drop': ReachDropWrapper, 'trace': PickPlaceWrapper, 'reach_and_pick': ReachAndPickWrapper, 'reach_and_place': ReachAndPlaceWrapper, 'place_peg': ReachAndPlaceWrapper, 'place_cube': ReachAndPlaceWrapper}
+env_horizon = {'pick': 70, 'drop': 50, 'reach_pick': 200, 'reach_drop': 200, 'trace': 400, 'reach_and_pick': 100, 'reach_and_place': 120, 'place_peg': 120, 'place_cube': 120}
+
 
 # Define the command line arguments
 parser = argparse.ArgumentParser()
@@ -41,10 +46,11 @@ parser.add_argument('--name', type=str, default=None, help='Name of the experime
 parser.add_argument('--render', action='store_true', help='Render the initial state')
 parser.add_argument('--split_action', action='store_true', help='Split the MOVE action into reach_pick, pick, reach_drop, drop')
 parser.add_argument('--data_dir', type=str, default='data/', help='Data Directory')
-parser.add_argument('-action', type=str, default='trace', help='Possible action step to train reach_pick, pick, reach_drop, drop')
-parser.add_argument('-lr', '--learning_rate', type=float, default=3e-3, help='Learning rate')
-parser.add_argument('-steps', '--total_timesteps', type=int, default=500_000, help='Total timesteps')
-parser.add_argument('-save', '--save_interval', type=int, default=5_000, help='Save interval')
+parser.add_argument('--action', type=str, default='trace', help='Possible action step to train reach_pick, pick, reach_drop, drop')
+parser.add_argument('--goal_type', type=str, default=None, help='Goal type to train on')
+parser.add_argument('--lr', '--learning_rate', type=float, default=3e-3, help='Learning rate')
+parser.add_argument('--steps', '--total_timesteps', type=int, default=10_000_000, help='Total timesteps')
+parser.add_argument('-save', '--save_interval', type=int, default=20_000, help='Save interval')
 
 args = parser.parse_args()
 # Set the random seed
@@ -133,7 +139,9 @@ def make_env(i: int, this_seed: int):
 
     # Wrap the environment
     env = GymWrapper(env)
-    if args.action in env_map:
+    if args.action in env_map and args.goal_type is not None:
+        env = env_map[args.action](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[args.action], goal_type=args.goal_type)
+    elif args.action in env_map:
         env = env_map[args.action](env, nulified_action_indexes=nulified_indexes, horizon=env_horizon[args.action])
     env.reset(seed=int(this_seed))
     env = monitor.Monitor(env, args.logs)
@@ -168,6 +176,19 @@ def linear_schedule(initial_value: float, final_value: float) -> Callable[[float
 
     return func
 
+# Define the evaluation callback to evaluate the policy and save the best one each 100000 steps
+eval_env = make_env(0, SEED)
+eval_callback = CustomEvalCallback(
+    eval_env,
+    best_model_save_path=policy_dir,
+    log_path=args.experiment_dir + '/evaluations.npz',
+    eval_freq=args.save_interval,
+    n_eval_episodes=30,
+    deterministic=True,
+    render=False,
+    verbose=1
+)
+
 learner = sac.SAC(env=venv, policy="MlpPolicy", verbose=1, tensorboard_log=args.tensorboard, seed=SEED)
 
 reward_net = BasicRewardNet(
@@ -191,29 +212,17 @@ gail_trainer = GAIL(
 #reward_before_training, _ = evaluate_policy(sqil_trainer.policy, venv, 50)
 #print(f"Reward before training: {reward_before_training}")
 
-# Define the evaluation callback to evaluate the policy and save the best one each 100000 steps
-eval_env = make_env(0, SEED)
-eval_callback = CustomEvalCallback(
-    eval_env,
-    best_model_save_path=policy_dir,
-    log_path=args.experiment_dir + '/evaluations.npz',
-    eval_freq=args.save_interval,
-    n_eval_episodes=30,
-    deterministic=True,
-    render=False,
-    verbose=1
-)
-
 # Train the policy
 print("Launching the GAIL training.")
+
 step = 0
-for steps in range(10_000):
+for i in range(10000):
     gail_trainer.train(
-        total_timesteps=10_000,
+        total_timesteps=10000,
     )  # Note: set to 300_000 to obtain good results
-    step += 10_000
     save_stable_model(policy_dir, learner)
-    gail_trainer.gen_algo.save(str(policy_path) + "_" + str(steps))
+    gail_trainer.gen_algo.save(str(policy_path) + "_" + str(step))
+    step += 10000
 
     # Evaluates the policy and writes in a csv file the performance and the step 
     mean_reward, mean_ep_length = evaluate_policy(learner, venv, 50, return_episode_rewards=True)
