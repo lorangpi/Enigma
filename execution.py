@@ -9,7 +9,7 @@ from robosuite.wrappers.behavior_cloning.hanoi_pick import PickWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_drop import DropWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_reach_pick import ReachPickWrapper
 from robosuite.wrappers.behavior_cloning.hanoi_reach_drop import ReachDropWrapper
-from detector import Robosuite_Hanoi_Detector
+from robosuite.wrappers.behavior_cloning.detector import Robosuite_Hanoi_Detector
 from stable_baselines3 import sac
 from PDDL.planner import *
 from PDDL.executor import *
@@ -69,7 +69,7 @@ env = GymWrapper(env)
 # Load executors
 reach_pick = Executor_RL(id='ReachPick', 
                          alg=sac.SAC, 
-                         policy="./data/demo_seed_4/2024-04-26_11:01:51_reach_pick/policy/best_model.zip", 
+                         policy="/home/lorangpi/Enigma/data/demo_seed_7/2024-04-30_20:44:23_reach_pick/policy/best_model.zip",
                          I={}, 
                          Beta=termination_indicator('reach_pick'),
                          nulified_action_indexes=[3],
@@ -77,7 +77,7 @@ reach_pick = Executor_RL(id='ReachPick',
                          horizon=200)
 pick = Executor_RL(id='Pick', 
                    alg=sac.SAC, 
-                   policy="./data/demo_seed_4/2024-04-26_22:41:44_pick/policy/best_model.zip", 
+                   policy="./data/demo_seed_4/2024-04-26_22:41:44_pick/policy/rl_model_290000_steps.zip", 
                    I={}, 
                    Beta=termination_indicator('pick'),
                    nulified_action_indexes=[0,1],

@@ -2,8 +2,22 @@ import zipfile, pickle, copy, json, argparse, os
 import datasets
 import numpy as np
 from datasets import Dataset, Features, Value, ClassLabel, Sequence
-from imitation.data import types
+#from imitation.data import types, TrajectorywithRew
+from imitation.data.types import TrajectoryWithRew
 from imitation.data import huggingface_utils, serialize
+
+
+class GoalTrajectory(TrajectoryWithRew):
+    """A `Trajectory` that additionally includes reward information."""
+
+    desired_goals: np.ndarray
+
+    achieved_goals: np.ndarray
+
+    def __post_init__(self):
+        """Performs input validation, including for rews."""
+        super().__post_init__()
+
 
 def load_data_from_zip(dir_path):
     # List all zip files in the directory
@@ -67,7 +81,7 @@ features = Features({
 })
 
 
-def prepare_data_for_dataset(trajectories):
+def prepare_data_for_dataset(trajectories, args):
     trajectory_objects = []
 
     for trajectory in trajectories:
@@ -82,14 +96,24 @@ def prepare_data_for_dataset(trajectories):
         rews = np.array([step[3] for step in episode])
         infos = np.array([{} for _ in episode])  # Assuming empty dicts for infos
         terminal = True #episode[-1][4]  # The 'done' flag of the last step
+        # print("obs shape: ", np.array(obs).shape)
+        # print("acts shape: ", np.array(acts).shape)
+        # print("rews shape: ", np.array(rews).shape)
+        # print("infos shape: ", np.array(infos).shape)
+        # print("terminal shape: ", np.array(terminal).shape)
+        # print("")
+        # print("obs shape: ", obs[0])
         #if terminal:
         #    print("an episode that reached the goal")
-        traj_obj = types.TrajectoryWithRew(obs=obs, acts=acts, infos=infos, rews=rews, terminal=terminal)
+        if args.goal_env:
+            desired_goals = np.array([step[4] for step in episode])
+            achieved_goals = np.array([step[5] for step in episode])
+            traj_obj = GoalTrajectory(obs=obs, acts=acts, infos=infos, rews=rews, terminal=terminal, desired_goals=desired_goals, achieved_goals=achieved_goals)
+        else:
+            traj_obj = TrajectoryWithRew(obs=obs, acts=acts, infos=infos, rews=rews, terminal=terminal)
         trajectory_objects.append(traj_obj)
 
     return trajectory_objects
-
-
 
 
 def save_buffer_as_json(data_buffer, file_path):
@@ -119,6 +143,7 @@ if __name__ == "__main__":
     # Arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/', help='Data Directory')
+    parser.add_argument('--goal_env', action='store_true', help='Use goal env')
     args = parser.parse_args()
 
     # Load the buffer from the zip file
@@ -130,7 +155,7 @@ if __name__ == "__main__":
     # Covert each buffer to a list of HuggingFace Trajectory
     demo_auto_trajectories = {}
     for act, buffer in data_buffers.items():
-        demo_trajectories_for_act = prepare_data_for_dataset(buffer) # a buffer is a list of trajectories for the high level act e.g reach_pick
+        demo_trajectories_for_act = prepare_data_for_dataset(buffer, args) # a buffer is a list of trajectories for the high level act e.g reach_pick
         # Convert the list of Trajectory to a HuggingFace Dataset
         demo_trajectories_for_act_dataset = huggingface_utils.trajectories_to_dataset(demo_trajectories_for_act)
         # Convert the dataset to a format usable by the imitation library.

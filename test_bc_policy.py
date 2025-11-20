@@ -35,12 +35,15 @@ env = PickWrapper(env, nulified_action_indexes=[0,1])
 # Load the policy
 print(f"Loading the policy from {args.policy}")
 learned_model = sac.SAC.load(args.policy)
+print("Policy loaded successfully")
 
 # Evaluate the policy
 done = False
 obs, _ = env.reset()
+print("Evaluating the policy")
 while not done:
     action, _ = learned_model.predict(obs)
+    print(action)
     obs, rew, terminated, truncated, info = env.step(action)
     done = terminated
     env.render()

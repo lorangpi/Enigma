@@ -1,25 +1,60 @@
 import os
 import copy
 import subprocess
+import time
 
 pddl_dir = "./PDDL"
 domain_dir = "Domains"
 problem_dir = "Problems"
 
-def call_planner(domain, problem, structure="pddl"):
+def add_predicates_to_pddl(pddl_name, init_predicates, problem_name="problem_dummy.pddl"):
+    pddl_file_path = pddl_dir + os.sep + problem_dir + os.sep + pddl_name
+    with open(pddl_file_path, 'r') as file:
+        lines = file.readlines()
+
+    init_index = lines.index('(:init \n')
+    for predicate, value in init_predicates.items():
+        if value:
+            # first convert the predicate of the form "p1(o1,o1)" to "p1 o1 o1"
+            predicate = predicate.replace('(', ' ').replace(')', ' ').replace(',', ' ')
+            # then add the predicate to the init section
+            lines.insert(init_index + 1, f'({predicate})\n')
+
+    # define new problem file path with the end file being named as "problem_dummy.pddl" (os.sep is used to handle the path separator)
+    problem_path = pddl_dir + os.sep + problem_dir + os.sep + problem_name
+
+    # overwrite the new problem file
+    with open(problem_path, 'w') as file:
+        file.writelines(lines)
+
+
+def call_planner(domain, problem, structure="pddl", timeout=60):
     '''
         Given a domain and a problem file
-        This function return the ffmetric Planner output.
-        In the action format
+        This function returns the Metric-FF planner output.
+        If the planner exceeds `timeout` seconds, it returns (False, False).
     '''
     domain_path = pddl_dir + os.sep + domain_dir + os.sep + domain + ".pddl"
     problem_path = pddl_dir + os.sep + problem_dir + os.sep + problem + ".pddl"
+
     if structure == "pddl":
-        run_script = f"../Metric-FF-v2.1/./ff -o {domain_path} -f {problem_path} -s 0"
-        output = subprocess.getoutput(run_script)
-        #print("Output = ", output)
-        if "unsolvable" in output or "goal can be simplified to FALSE" in output:
+        run_script = f"./Metric-FF-v2.1/./ff -o {domain_path} -f {problem_path} -s 0"
+        try:
+            output = subprocess.run(
+                run_script,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=timeout
+            ).stdout
+        except subprocess.TimeoutExpired:
+            print(f"The planner timed out after {timeout} seconds.")
             return False, False
+
+        if "unsolvable" in output or "goal can be simplified to FALSE" in output:
+            print("The planner failed because the problem is unsolvable: {}".format(output))
+            return False, False
+
         try:
             output = output.split('ff: found legal plan as follows\n')[1]
             output = output.split('\ntime spent:')[0]
@@ -27,6 +62,7 @@ def call_planner(domain, problem, structure="pddl"):
             output = os.linesep.join([s for s in output.splitlines() if s])
         except Exception as e:
             print("The planner failed because of: {}.\nThe output of the planner was:\n{}".format(e, output))
+            return False, False
 
         plan, game_action_set = _output_to_plan(output, structure=structure)
         return plan, game_action_set

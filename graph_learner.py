@@ -39,6 +39,14 @@ class GraphLearner:
         self.state_mapping = {}
         self.state_set = set()
 
+    def is_known_state(self, state):
+        return frozenset(state.items()) in self.state_set
+
+    def is_known_edge(self, state, action, next_state):
+        state = self.add_state(state)
+        next_state = self.add_state(next_state)
+        return self.graph.has_edge(state, next_state) and self.graph.edges[state, next_state]['label'] == action
+
     def add_state(self, state):
         state_frozenset = frozenset(state.items())
         if state_frozenset not in self.state_set:

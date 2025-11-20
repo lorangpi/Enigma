@@ -2,7 +2,7 @@ import os, argparse, time, zipfile, pickle
 import numpy as np
 import robosuite as suite
 from datetime import datetime
-from detector import Robosuite_Hanoi_Detector
+from robosuite.src.robosuite.wrappers.behavior_cloning.detector import Robosuite_Hanoi_Detector
 from robosuite.devices import Keyboard
 from robosuite.utils.input_utils import input2action
 from graph_learner import GraphLearner

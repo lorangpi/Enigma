@@ -8,7 +8,7 @@ from stable_baselines3.common.env_checker import check_env
 from stable_baselines3 import SAC, HerReplayBuffer
 from robosuite.wrappers.gym_wrapper import GymWrapper
 from operator_wrapper import PickWrapper, ReachWrapper
-from detector import RoboSuite_PickPlace_Detector, Robosuite_Hanoi_Detector
+from robosuite.src.robosuite.wrappers.behavior_cloning.detector import RoboSuite_PickPlace_Detector, Robosuite_Hanoi_Detector
 from HER_wrapper import HERWrapper
 from robosuite.devices import Keyboard
 from robosuite.utils.input_utils import input2action
