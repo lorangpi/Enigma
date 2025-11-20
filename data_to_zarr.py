@@ -108,26 +108,16 @@ def prepare_data_for_dataset(trajectories, args):
         if not trajectory:
             continue
         episode = trajectory[0]
-        if args.lxm:
-            # episode in the format of (act, obs, next_act, next_obs, etc...)
-            obs = np.array([np.reshape(episode[i], -1) if len(episode[i].shape) > 1 else episode[i] for i in range(1, len(episode), 2)])
-            acts = np.array([episode[i] for i in range(2, len(episode), 2)])
-            keypoint = np.array([[0.0] for i in range(1, len(episode), 2)])
-            rews = np.array([0.0 for _ in range(1, len(episode)//2)])
-            infos = np.array([{} for _ in range(1, len(episode)//2)])  # Assuming empty dicts for infos
-            terminal = True
-            #print("obs shape: ", np.array(obs).shape)
-            #print("acts shape: ", np.array(acts).shape)
-        else:
-            # Assuming each step has observations, actions, next_obs, rewards, and done flags
-            obs = [step[0] for step in episode]
-            obs.append(episode[-1][2]) # add the `next_obs` from the last trajectory as the final obs
-            obs = np.array(obs) # turn it into np.array
-            acts = np.array([step[1] for step in episode])
-            keypoint = np.array([step[3] for step in episode])
-            rews = np.array([step[4] for step in episode])
-            infos = np.array([{} for _ in episode])  # Assuming empty dicts for infos
-            terminal = True #episode[-1][4]  # The 'done' flag of the last step
+        # Assuming each step has observations, actions, next_obs, rewards, and done flags
+        obs = [step[0] for step in episode]
+        obs.append(episode[-1][2]) # add the `next_obs` from the last trajectory as the final obs
+        obs = np.array(obs) # turn it into np.array
+        acts = np.array([step[1] for step in episode])
+        keypoint = np.array([step[2] for step in episode])#
+        #print("obs: ", obs)
+        rews = np.zeros(len(acts))  # Assuming zero rewards for all steps
+        infos = np.array([{} for _ in episode])  # Assuming empty dicts for infos
+        terminal = True #episode[-1][4]  # The 'done' flag of the last step
         # print("obs shape: ", np.array(obs).shape)
         # print("acts shape: ", np.array(acts).shape)
         # print("rews shape: ", np.array(rews).shape)
@@ -261,7 +251,10 @@ if __name__ == "__main__":
         print(demo_trajectories_for_act[0].acts)
         ee_dim = len(demo_trajectories_for_act[0].acts[0]) - len(constant_indexes)
         obs_dim = len(demo_trajectories_for_act[0].obs[0])
-        keypoint_dim = len(demo_trajectories_for_act[0].keypoint[0])
+        try:
+            keypoint_dim = len(demo_trajectories_for_act[0].keypoint[0])
+        except:
+            keypoint_dim = 1
         print("obs_dim: ", obs_dim, " keypoint_dim: ", keypoint_dim, " ee_dim: ", ee_dim)
         # Count total number of timesteps
         for traj in demo_trajectories_for_act:

@@ -28,7 +28,7 @@ def add_predicates_to_pddl(pddl_name, init_predicates, problem_name="problem_dum
         file.writelines(lines)
 
 
-def call_planner(domain, problem, structure="pddl"):
+def call_planner(domain, problem, structure="pddl", timeout=60):
     '''
         Given a domain and a problem file
         This function returns the Metric-FF planner output.
